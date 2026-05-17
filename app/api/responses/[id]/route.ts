@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 
 const patchSchema = z.object({
   sessionId: z.string(),
-  consentAcceptedAt: z.string().datetime().optional(),
+  consentAcceptedAt: z.string().min(1).optional(),
   currentStepIndex: z.number().int().min(0).optional(),
   progressPercentage: z.number().min(0).max(100).optional(),
   lastSectionId: z.string().optional(),

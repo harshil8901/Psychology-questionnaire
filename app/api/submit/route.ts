@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getAllQuestions } from "@/lib/questionnaire";
+import { getAllQuestions, isQuestionVisible } from "@/lib/questionnaire";
 import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
-import { submitSchema, validateAnswerForQuestion } from "@/lib/validation";
+import { submitSchema, sanitizeText, validateAnswerForQuestion } from "@/lib/validation";
 import { headers } from "next/headers";
 
 export async function POST(request: Request) {
   const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
-  const limited = rateLimit(`submit:${ip}`, 5, 60_000);
+  const limited = rateLimit(`submit:${ip}`, 15, 60_000);
   if (!limited.success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid submission" }, { status: 400 });
   }
 
-  const { responseId, sessionId, honeypot } = parsed.data;
+  const { responseId, sessionId, honeypot, answers: clientAnswers } = parsed.data;
   if (honeypot) {
     return NextResponse.json({ error: "Rejected" }, { status: 400 });
   }
@@ -55,6 +55,38 @@ export async function POST(request: Request) {
     const questionnaire = await loadQuestionnaire(response.questionnaire_id);
     const questions = getAllQuestions(questionnaire);
 
+    // Sync client answers (ensures last page + any missed autosaves are stored)
+    if (clientAnswers && Object.keys(clientAnswers).length > 0) {
+      const upserts: Array<{
+        response_id: string;
+        question_id: string;
+        section_id: string;
+        answer: string;
+        updated_at: string;
+      }> = [];
+
+      for (const section of questionnaire.sections) {
+        for (const q of section.questions) {
+          const raw = clientAnswers[q.id];
+          if (raw === undefined) continue;
+          upserts.push({
+            response_id: responseId,
+            question_id: q.id,
+            section_id: section.id,
+            answer: sanitizeText(raw),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+
+      if (upserts.length > 0) {
+        const { error: upsertError } = await supabase
+          .from("answers")
+          .upsert(upserts, { onConflict: "response_id,question_id" });
+        if (upsertError) throw upsertError;
+      }
+    }
+
     const { data: answerRows } = await supabase
       .from("answers")
       .select("question_id, answer")
@@ -67,16 +99,26 @@ export async function POST(request: Request) {
 
     for (const q of questions) {
       if (!q.required) continue;
+      if (!isQuestionVisible(q, answers)) continue;
       const err = validateAnswerForQuestion(q, answers[q.id] ?? "");
       if (err) {
         return NextResponse.json(
-          { error: `Missing answer: ${q.id}` },
+          { error: `Please complete all required questions before submitting.` },
           { status: 400 }
         );
       }
     }
 
-    const demographicKeys = ["name", "age", "gender", "education", "experience", "industry", "location", "work_mode"];
+    const demographicKeys = [
+      "name",
+      "age",
+      "gender",
+      "education",
+      "experience",
+      "industry",
+      "location",
+      "work_mode",
+    ];
     const demographic_snapshot: Record<string, string> = {};
     demographicKeys.forEach((k) => {
       if (answers[k]) demographic_snapshot[k] = answers[k];
@@ -96,11 +138,15 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    await supabase.from("analytics").insert({
-      response_id: responseId,
-      event_type: "survey_completed",
-      metadata: { questionnaireId: questionnaire.id },
-    });
+    try {
+      await supabase.from("analytics").insert({
+        response_id: responseId,
+        event_type: "survey_completed",
+        metadata: { questionnaireId: questionnaire.id },
+      });
+    } catch {
+      // Non-blocking
+    }
 
     return NextResponse.json({ responseId, completedAt: now });
   } catch (e) {

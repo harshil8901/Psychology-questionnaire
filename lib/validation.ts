@@ -17,6 +17,7 @@ export const submitSchema = z.object({
   responseId: z.string().uuid(),
   turnstileToken: z.string().min(1).optional(),
   honeypot: z.string().max(0).optional(),
+  answers: z.record(z.string(), z.string()).optional(),
 });
 
 export function validateAnswerForQuestion(

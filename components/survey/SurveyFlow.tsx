@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { PageTransition } from "@/components/animations/PageTransition";
@@ -16,9 +16,13 @@ import {
   calculateProgress,
   getSectionById,
   isQuestionVisible,
+  isStepComplete,
 } from "@/lib/questionnaire";
+import { cn } from "@/lib/utils";
 import { validateAnswerForQuestion } from "@/lib/validation";
 import type { Question, Questionnaire, SurveyStep } from "@/types/questionnaire";
+
+const AUTO_ADVANCE_MS = 450;
 
 export function SurveyFlow({
   questionnaire,
@@ -43,6 +47,8 @@ export function SurveyFlow({
   const { savePageAnswers, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const advancingRef = useRef(false);
 
   const currentStep: SurveyStep | undefined = steps[currentStepIndex];
   const progress = calculateProgress(
@@ -65,6 +71,12 @@ export function SurveyFlow({
     }
   }, [consentAcceptedAt, preview, router]);
 
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    };
+  }, []);
+
   const getPageAnswers = useCallback(
     (step: SurveyStep) => {
       if (step.kind === "section_intro") return [];
@@ -84,31 +96,21 @@ export function SurveyFlow({
     await savePageAnswers(getPageAnswers(currentStep));
   }, [currentStep, getPageAnswers, savePageAnswers]);
 
-  const handleAnswerChange = useCallback(
-    (question: Question, value: string) => {
-      setAnswer(question.id, value);
-      setErrors((e) => {
-        const next = { ...e };
-        delete next[question.id];
-        delete next._form;
-        return next;
-      });
+  const validateCurrentStep = useCallback(
+    (answerMap: Record<string, string> = answers): boolean => {
+      if (!currentStep || currentStep.kind === "section_intro") return true;
+
+      const newErrors: Record<string, string> = {};
+      for (const q of currentStep.questions) {
+        if (!isQuestionVisible(q, answerMap)) continue;
+        const err = validateAnswerForQuestion(q, answerMap[q.id] ?? "");
+        if (err) newErrors[q.id] = err;
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
     },
-    [setAnswer]
+    [currentStep, answers]
   );
-
-  const validateCurrentStep = useCallback((): boolean => {
-    if (!currentStep || currentStep.kind === "section_intro") return true;
-
-    const newErrors: Record<string, string> = {};
-    for (const q of currentStep.questions) {
-      if (!isQuestionVisible(q, answers)) continue;
-      const err = validateAnswerForQuestion(q, answers[q.id] ?? "");
-      if (err) newErrors[q.id] = err;
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [currentStep, answers]);
 
   const handleSubmit = useCallback(async () => {
     if (!responseId || !sessionId) return;
@@ -126,34 +128,43 @@ export function SurveyFlow({
           responseId,
           sessionId,
           honeypot: "",
+          answers,
         }),
       });
-      if (!res.ok) throw new Error("Submit failed");
-      const data = (await res.json()) as { responseId: string };
-      router.push(`/complete?id=${data.responseId}`);
-    } catch {
-      setErrors({ _form: "Submission failed. Please try again." });
+      const data = (await res.json()) as { responseId?: string; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Submission failed");
+      }
+      router.push(`/complete?id=${data.responseId ?? responseId}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Submission failed. Please try again.";
+      setErrors({ _form: message });
     } finally {
       setSubmitting(false);
     }
-  }, [responseId, sessionId, router]);
+  }, [responseId, sessionId, answers, router]);
 
   const goNext = useCallback(async () => {
+    if (advancingRef.current) return;
     if (!validateCurrentStep()) return;
 
     const isLast = currentStepIndex >= steps.length - 1;
-
-    if (currentStep?.kind !== "section_intro") {
-      await flushCurrentPage();
-    }
 
     if (isLast) {
       if (preview) {
         router.push("/welcome");
         return;
       }
+      if (currentStep?.kind !== "section_intro") {
+        await flushCurrentPage();
+      }
       await handleSubmit();
       return;
+    }
+
+    if (currentStep?.kind !== "section_intro") {
+      await flushCurrentPage();
     }
 
     const nextIndex = currentStepIndex + 1;
@@ -179,8 +190,49 @@ export function SurveyFlow({
     answers,
   ]);
 
+  const scheduleAutoAdvance = useCallback(
+    (answerMap: Record<string, string>) => {
+      if (!currentStep || currentStep.kind !== "questions") return;
+      if (currentStepIndex >= steps.length - 1) return;
+      if (advancingRef.current) return;
+      if (!isStepComplete(currentStep, answerMap, validateAnswerForQuestion)) return;
+
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = setTimeout(() => {
+        advancingRef.current = true;
+        void goNext().finally(() => {
+          advancingRef.current = false;
+        });
+      }, AUTO_ADVANCE_MS);
+    },
+    [currentStep, currentStepIndex, steps.length, goNext]
+  );
+
+  const handleAnswerChange = useCallback(
+    (question: Question, value: string) => {
+      const nextAnswers = { ...answers, [question.id]: value };
+      setAnswer(question.id, value);
+      setErrors((e) => {
+        const next = { ...e };
+        delete next[question.id];
+        delete next._form;
+        return next;
+      });
+
+      if (question.type === "likert" || question.type === "single_choice") {
+        scheduleAutoAdvance(nextAnswers);
+      }
+    },
+    [answers, setAnswer, scheduleAutoAdvance]
+  );
+
+  const handleAnswerBlur = useCallback(() => {
+    scheduleAutoAdvance(useSurveyStore.getState().answers);
+  }, [scheduleAutoAdvance]);
+
   const goBack = useCallback(async () => {
     if (currentStepIndex <= 0) return;
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
 
     if (currentStep?.kind !== "section_intro") {
       await flushCurrentPage();
@@ -192,9 +244,10 @@ export function SurveyFlow({
   if (!currentStep) return null;
 
   const isLastStep = currentStepIndex >= steps.length - 1;
+  const isQuestionStep = currentStep.kind === "questions";
 
   return (
-    <div className="min-h-screen pb-28">
+    <div className={cn("min-h-screen", isQuestionStep ? "pb-24" : "pb-8")}>
       {preview && (
         <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
           Preview mode — responses are not saved
@@ -235,6 +288,11 @@ export function SurveyFlow({
                       question={q}
                       value={answers[q.id]}
                       onChange={(v) => handleAnswerChange(q, v)}
+                      onBlur={
+                        q.type === "text" || q.type === "textarea"
+                          ? handleAnswerBlur
+                          : undefined
+                      }
                       error={errors[q.id]}
                     />
                   ) : null
@@ -249,21 +307,23 @@ export function SurveyFlow({
         )}
       </AnimatePresence>
 
-      {currentStep.kind !== "section_intro" && (
+      {isQuestionStep && !isLastStep && (
         <SurveyNavigation
+          mode="back"
           canGoBack={currentStepIndex > 0}
           onBack={goBack}
-          onNext={goNext}
-          nextLabel={
-            preview && isLastStep
-              ? "End preview"
-              : isLastStep
-                ? submitting
-                  ? "Submitting…"
-                  : "Submit Survey"
-                : "Continue"
-          }
-          isNextDisabled={!preview && isLastStep && submitting}
+          isLoading={isSaving}
+        />
+      )}
+
+      {isQuestionStep && isLastStep && (
+        <SurveyNavigation
+          mode="submit"
+          canGoBack={currentStepIndex > 0}
+          onBack={goBack}
+          onSubmit={goNext}
+          submitLabel={preview ? "End preview" : "Submit Survey"}
+          isSubmitDisabled={!preview && submitting}
           isLoading={submitting || isSaving}
         />
       )}

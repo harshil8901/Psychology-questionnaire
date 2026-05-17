@@ -68,7 +68,7 @@ export function useSurveySession() {
     const timestamp = new Date().toISOString();
 
     if (!offline) {
-      await fetch(`/api/responses/${responseId}`, {
+      const res = await fetch(`/api/responses/${responseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,6 +76,12 @@ export function useSurveySession() {
           consentAcceptedAt: timestamp,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          (data as { error?: string }).error ?? "Could not save consent"
+        );
+      }
     }
 
     store.setConsent(timestamp);

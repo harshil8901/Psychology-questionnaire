@@ -8,6 +8,7 @@ interface TextQuestionProps {
   type: "text" | "textarea";
   value?: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   id: string;
 }
@@ -16,6 +17,7 @@ export function TextQuestion({
   type,
   value,
   onChange,
+  onBlur,
   placeholder,
   id,
 }: TextQuestionProps) {
@@ -30,6 +32,7 @@ export function TextQuestion({
         id={id}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         placeholder={placeholder}
         rows={4}
         className={cn(className, "min-h-[120px] resize-none")}
@@ -42,6 +45,7 @@ export function TextQuestion({
       id={id}
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       placeholder={placeholder}
       className={cn(className, "h-12 text-base")}
     />

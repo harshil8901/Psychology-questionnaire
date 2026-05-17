@@ -22,7 +22,7 @@ export function useAutosave(preview = false) {
 
       setSaving(true);
       try {
-        await Promise.all(
+        const results = await Promise.all(
           items.map(({ questionId, sectionId, value }) =>
             fetch(`/api/responses/${responseId}/answers`, {
               method: "POST",
@@ -36,9 +36,13 @@ export function useAutosave(preview = false) {
             })
           )
         );
+        if (results.some((r) => !r.ok)) {
+          throw new Error("Save failed");
+        }
         setLastSaved(new Date().toISOString());
       } catch (e) {
         console.error("Autosave failed", e);
+        throw e;
       } finally {
         setSaving(false);
       }

@@ -79,3 +79,22 @@ export function isQuestionVisible(
   if (Array.isArray(target)) return target.includes(val);
   return val === target;
 }
+
+export function getVisibleStepQuestions(
+  step: SurveyStep,
+  answers: Record<string, string>
+): Question[] {
+  if (step.kind === "section_intro") return [];
+  return step.questions.filter((q) => isQuestionVisible(q, answers));
+}
+
+/** True when every visible question on the step has a valid answer */
+export function isStepComplete(
+  step: SurveyStep,
+  answers: Record<string, string>,
+  validate: (q: Question, value: string) => string | null
+): boolean {
+  const visible = getVisibleStepQuestions(step, answers);
+  if (visible.length === 0) return true;
+  return visible.every((q) => validate(q, answers[q.id] ?? "") === null);
+}

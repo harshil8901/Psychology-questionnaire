@@ -11,6 +11,7 @@ interface QuestionRendererProps {
   question: Question;
   value?: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   error?: string;
 }
 
@@ -18,6 +19,7 @@ function QuestionRendererComponent({
   question,
   value,
   onChange,
+  onBlur,
   error,
 }: QuestionRendererProps) {
   return (
@@ -66,6 +68,7 @@ function QuestionRendererComponent({
             type={question.type}
             value={value}
             onChange={onChange}
+            onBlur={onBlur}
             placeholder={question.placeholder}
           />
         )}
