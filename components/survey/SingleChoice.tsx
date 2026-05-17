@@ -31,7 +31,7 @@ export function SingleChoice({ options, value, onChange, name }: SingleChoicePro
             htmlFor={id}
             variants={{ hidden: { opacity: 0, x: -8 }, visible: { opacity: 1, x: 0 } }}
             className={cn(
-              "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all",
+              "flex min-h-[56px] cursor-pointer touch-manipulation items-center gap-3 rounded-xl border px-4 py-3.5 transition-all active:scale-[0.99]",
               selected
                 ? "border-white/25 bg-white/[0.1] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]"
@@ -54,7 +54,7 @@ export function SingleChoice({ options, value, onChange, name }: SingleChoicePro
             >
               {selected && <span className="h-2 w-2 rounded-full bg-[#020308]" />}
             </span>
-            <span className="text-sm font-medium">{option}</span>
+            <span className="text-base font-medium leading-snug">{option}</span>
           </motion.label>
         );
       })}

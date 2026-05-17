@@ -9,8 +9,11 @@ interface TextQuestionProps {
   value?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  onContinue?: () => void;
   placeholder?: string;
   id: string;
+  /** Digits only (e.g. age) */
+  numericOnly?: boolean;
 }
 
 export function TextQuestion({
@@ -18,21 +21,40 @@ export function TextQuestion({
   value,
   onChange,
   onBlur,
+  onContinue,
   placeholder,
   id,
+  numericOnly = false,
 }: TextQuestionProps) {
   const className = cn(
     "border-white/[0.08] bg-white/[0.04] text-white placeholder:text-slate-500",
-    "focus-visible:border-cyan-400/40 focus-visible:ring-cyan-400/20"
+    "focus-visible:border-cyan-400/40 focus-visible:ring-cyan-400/20",
+    "text-base sm:text-lg"
   );
+
+  const handleChange = (raw: string) => {
+    if (numericOnly) {
+      onChange(raw.replace(/\D/g, "").slice(0, 3));
+      return;
+    }
+    onChange(raw);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && onContinue) {
+      e.preventDefault();
+      onContinue();
+    }
+  };
 
   if (type === "textarea") {
     return (
       <Textarea
         id={id}
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         onBlur={onBlur}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={4}
         className={cn(className, "min-h-[120px] resize-none")}
@@ -43,11 +65,18 @@ export function TextQuestion({
   return (
     <Input
       id={id}
+      type="text"
+      inputMode={numericOnly ? "numeric" : "text"}
+      autoComplete={numericOnly ? "off" : undefined}
+      pattern={numericOnly ? "[0-9]*" : undefined}
       value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
       onBlur={onBlur}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      className={cn(className, "h-12 text-base")}
+      maxLength={numericOnly ? 3 : undefined}
+      aria-describedby={numericOnly ? `${id}-hint` : undefined}
+      className={cn(className, "h-14 min-h-14")}
     />
   );
 }

@@ -22,7 +22,7 @@ export function LikertScale({
     <motion.div
       role="radiogroup"
       aria-label="Likert scale"
-      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:flex xl:flex-wrap"
       initial="hidden"
       animate="visible"
       variants={{
@@ -44,7 +44,7 @@ export function LikertScale({
             whileHover={{ scale: disabled ? 1 : 1.02 }}
             whileTap={{ scale: disabled ? 1 : 0.98 }}
             className={cn(
-              "relative flex min-h-[48px] flex-1 cursor-pointer items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-medium transition-all duration-300 sm:min-w-[100px]",
+              "relative flex min-h-[52px] flex-1 cursor-pointer touch-manipulation items-center justify-center rounded-xl border px-3 py-3.5 text-center text-sm font-medium transition-all duration-300 active:scale-[0.99] sm:min-h-[48px] sm:min-w-[100px] sm:text-sm",
               selected
                 ? "border-white/25 bg-white/[0.12] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white",

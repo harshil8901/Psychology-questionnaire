@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { PageTransition } from "@/components/animations/PageTransition";
 import { GlassCard } from "@/components/layout/GlassCard";
@@ -220,9 +220,7 @@ export function SurveyFlow({
         return next;
       });
 
-      if (question.type === "likert" || question.type === "single_choice") {
-        scheduleAutoAdvance(nextAnswers);
-      }
+      scheduleAutoAdvance(nextAnswers);
     },
     [answers, setAnswer, scheduleAutoAdvance]
   );
@@ -248,7 +246,7 @@ export function SurveyFlow({
   const isQuestionStep = currentStep.kind === "questions";
 
   return (
-    <div className={cn("min-h-screen", isQuestionStep ? "pb-24" : "pb-8")}>
+    <motion.div className={cn("min-h-screen", isQuestionStep ? "pb-36 sm:pb-32" : "pb-8")}>
       {preview && (
         <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
           Preview mode — responses are not saved
@@ -280,8 +278,8 @@ export function SurveyFlow({
           </PageTransition>
         ) : (
           <PageTransition key={`q-${currentStepIndex}`}>
-            <div className="mx-auto max-w-2xl px-4 py-6">
-              <GlassCard className="space-y-8">
+            <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-8">
+              <GlassCard className="space-y-8 p-5 sm:space-y-10 sm:p-8">
                 {currentStep.questions.map((q) =>
                   isQuestionVisible(q, answers) ? (
                     <QuestionRenderer
@@ -294,6 +292,7 @@ export function SurveyFlow({
                           ? handleAnswerBlur
                           : undefined
                       }
+                      onContinue={goNext}
                       error={errors[q.id]}
                     />
                   ) : null
@@ -308,26 +307,18 @@ export function SurveyFlow({
         )}
       </AnimatePresence>
 
-      {isQuestionStep && !isLastStep && (
+      {isQuestionStep && (
         <SurveyNavigation
-          mode="back"
           canGoBack={currentStepIndex > 0}
           onBack={goBack}
-          isLoading={isSaving}
+          onContinue={goNext}
+          continueLabel={
+            isLastStep ? (preview ? "End preview" : "Submit Survey") : "Continue"
+          }
+          continueDisabled={!preview && (isLastStep ? submitting : false)}
+          isLoading={(isLastStep && submitting) || isSaving}
         />
       )}
-
-      {isQuestionStep && isLastStep && (
-        <SurveyNavigation
-          mode="submit"
-          canGoBack={currentStepIndex > 0}
-          onBack={goBack}
-          onSubmit={goNext}
-          submitLabel={preview ? "End preview" : "Submit Survey"}
-          isSubmitDisabled={!preview && submitting}
-          isLoading={submitting || isSaving}
-        />
-      )}
-    </div>
+    </motion.div>
   );
 }

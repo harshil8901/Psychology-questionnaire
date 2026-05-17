@@ -28,8 +28,10 @@ export function buildSurveySteps(
     });
 
     const sorted = [...section.questions].sort((a, b) => a.order - b.order);
-    for (let i = 0; i < sorted.length; i += questionsPerScreen) {
-      const chunk = sorted.slice(i, i + questionsPerScreen);
+    // One question per screen for demographics (text + choices) — easier on mobile
+    const perScreen = section.id === "demographics" ? 1 : questionsPerScreen;
+    for (let i = 0; i < sorted.length; i += perScreen) {
+      const chunk = sorted.slice(i, i + perScreen);
       steps.push({
         kind: "questions",
         sectionId: section.id,

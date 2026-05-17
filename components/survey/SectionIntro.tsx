@@ -69,7 +69,7 @@ export function SectionIntro({ section, questionCount, onContinue }: SectionIntr
           onClick={onContinue}
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
-          className={cn(surveyPrimaryBtn, "mt-8 w-full")}
+          className={cn(surveyPrimaryBtn, "mt-8 min-h-14 w-full touch-manipulation")}
         >
           Continue
         </motion.button>

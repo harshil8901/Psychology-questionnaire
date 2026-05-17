@@ -12,6 +12,7 @@ interface QuestionRendererProps {
   value?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  onContinue?: () => void;
   error?: string;
 }
 
@@ -20,6 +21,7 @@ function QuestionRendererComponent({
   value,
   onChange,
   onBlur,
+  onContinue,
   error,
 }: QuestionRendererProps) {
   return (
@@ -32,7 +34,7 @@ function QuestionRendererComponent({
       <motion.div>
         <label
           htmlFor={question.id}
-          className="block text-lg font-medium leading-snug text-white sm:text-xl"
+          className="block text-lg font-medium leading-snug text-white sm:text-xl lg:text-2xl"
         >
           {question.question}
           {question.required && (
@@ -63,14 +65,23 @@ function QuestionRendererComponent({
           />
         )}
         {(question.type === "text" || question.type === "textarea") && (
-          <TextQuestion
-            id={question.id}
-            type={question.type}
-            value={value}
-            onChange={onChange}
-            onBlur={onBlur}
-            placeholder={question.placeholder}
-          />
+          <>
+            <TextQuestion
+              id={question.id}
+              type={question.type}
+              value={value}
+              onChange={onChange}
+              onBlur={onBlur}
+              onContinue={onContinue}
+              placeholder={question.placeholder}
+              numericOnly={question.id === "age"}
+            />
+            {question.id === "age" && (
+              <p id={`${question.id}-hint`} className="mt-2 text-xs text-slate-500">
+                Enter your age in years (18–100)
+              </p>
+            )}
+          </>
         )}
       </div>
       {error && (
