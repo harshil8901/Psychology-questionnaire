@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -22,7 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ResponseRow } from "@/types/database";
-import type { AnswerRow } from "@/types/database";
 
 interface ListResponse {
   responses: ResponseRow[];
@@ -35,10 +34,6 @@ export function ResponsesManager() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
-  const [selected, setSelected] = useState<{
-    response: ResponseRow;
-    answers: AnswerRow[];
-  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -59,19 +54,6 @@ export function ResponsesManager() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const openDetail = async (id: string) => {
-    const res = await fetch(`/api/admin/responses/${id}`);
-    const json = await res.json();
-    if (res.ok) setSelected(json);
-  };
-
-  const deleteResponse = async (id: string) => {
-    if (!confirm("Delete this response and all answers?")) return;
-    await fetch(`/api/admin/responses/${id}`, { method: "DELETE" });
-    setSelected(null);
-    load();
-  };
 
   const exportUrl = (format: string) => `/api/admin/export?format=${format}`;
 
@@ -131,7 +113,7 @@ export function ResponsesManager() {
         <div className="overflow-x-auto p-1">
           {loading ? (
             <p className="p-5 text-sm text-slate-500">Loading…</p>
-          ) : data?.responses.length === 0 ? (
+          ) : !data || data.responses.length === 0 ? (
             <p className="p-5 text-sm text-slate-500">No completed responses yet.</p>
           ) : (
             <>
@@ -146,11 +128,10 @@ export function ResponsesManager() {
                       Completed
                     </TableHead>
                     <TableHead className="text-xs font-medium text-slate-500">Started</TableHead>
-                    <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.responses.map((r) => (
+                  {data.responses.map((r) => (
                     <TableRow
                       key={r.id}
                       className="border-white/[0.04] hover:bg-white/[0.02]"
@@ -169,15 +150,6 @@ export function ResponsesManager() {
                       <TableCell className="text-sm text-slate-500">
                         {new Date(r.created_at).toLocaleString()}
                       </TableCell>
-                      <TableCell>
-                        <button
-                          type="button"
-                          className={adminBtn("ghost")}
-                          onClick={() => openDetail(r.id)}
-                        >
-                          View
-                        </button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -192,12 +164,12 @@ export function ResponsesManager() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <span className="text-xs text-slate-500">
-                  Page {page} of {data?.pagination.totalPages ?? 1}
+                  Page {page} of {data.pagination.totalPages}
                 </span>
                 <button
                   type="button"
                   className={adminBtn("ghost")}
-                  disabled={page >= (data?.pagination.totalPages ?? 1)}
+                  disabled={page >= data.pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -207,56 +179,6 @@ export function ResponsesManager() {
           )}
         </div>
       </section>
-
-      {selected && (
-        <section className={adminCard}>
-          <div
-            className={cn(
-              adminCardHeader,
-              "flex flex-row items-start justify-between gap-4"
-            )}
-          >
-            <div>
-              <h2 className={adminSectionTitle}>Response detail</h2>
-              <p className="mt-1 font-mono text-xs text-slate-500">{selected.response.id}</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className={adminBtn("danger")}
-                onClick={() => deleteResponse(selected.response.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </button>
-              <button
-                type="button"
-                className={adminBtn("ghost")}
-                onClick={() => setSelected(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-          <div className="max-h-96 space-y-2 overflow-y-auto p-5">
-            {selected.answers.length === 0 ? (
-              <p className="text-sm text-slate-500">No answers saved.</p>
-            ) : (
-              selected.answers.map((a) => (
-                <div
-                  key={a.id}
-                  className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
-                >
-                  <p className="text-xs text-slate-500">
-                    {a.section_id} · {a.question_id}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-200">{a.answer}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
