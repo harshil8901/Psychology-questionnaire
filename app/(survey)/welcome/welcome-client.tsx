@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Clock, Lock, Sparkles } from "lucide-react";
@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/layout/GlassCard";
 import { StaggerContainer, StaggerItem } from "@/components/animations/PageTransition";
 import { surveyPrimaryBtn } from "@/components/survey/survey-ui";
 import { useSurveySession } from "@/hooks/useSurveySession";
+import { useSurveyStore } from "@/store/survey-store";
 import { cn } from "@/lib/utils";
 import type { Questionnaire } from "@/types/questionnaire";
 
@@ -24,6 +25,15 @@ export function WelcomeClient({
   const [accepting, setAccepting] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
   const { acceptConsent } = useSurveySession();
+  const questionnaireId = questionnaire.id;
+
+  useEffect(() => {
+    const state = useSurveyStore.getState();
+    if (state.questionnaireId !== questionnaireId) {
+      state.clearProgress();
+      state.setQuestionnaireId(questionnaireId);
+    }
+  }, [questionnaireId]);
 
   const handleAccept = async () => {
     if (preview) {
@@ -34,13 +44,15 @@ export function WelcomeClient({
     setAccepting(true);
     setConsentError(null);
     try {
-      await acceptConsent();
+      await acceptConsent(questionnaireId);
       setConsentOpen(false);
-      router.push("/survey");
+      router.push(`/survey?q=${encodeURIComponent(questionnaireId)}`);
     } catch (err) {
       console.error("Consent failed", err);
       setConsentError(
-        "Could not start the survey. Please check your connection and try again."
+        err instanceof Error
+          ? err.message
+          : "Could not start the survey. Please check your connection and try again."
       );
     } finally {
       setAccepting(false);

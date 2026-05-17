@@ -28,12 +28,18 @@ export async function POST(request: Request) {
 
   const { sessionId, questionnaireId } = parsed.data;
 
-  if (!isSupabaseConfigured()) {
-    await loadQuestionnaire(questionnaireId);
-    return NextResponse.json(createOfflineSessionPayload(sessionId));
+  let questionnaire;
+  try {
+    questionnaire = await loadQuestionnaire(questionnaireId);
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : `Questionnaire not found: ${questionnaireId}`;
+    return NextResponse.json({ error: message }, { status: 404 });
   }
 
-  const questionnaire = await loadQuestionnaire(questionnaireId);
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(createOfflineSessionPayload(sessionId));
+  }
 
   try {
     const supabase = createAdminClient();

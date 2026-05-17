@@ -71,7 +71,7 @@ export function SurveyFlow({
   useEffect(() => {
     if (preview || !isHydrated) return;
     if (!consentAcceptedAt) {
-      router.replace("/welcome");
+      router.replace(`/welcome?q=${encodeURIComponent(questionnaire.id)}`);
     }
   }, [consentAcceptedAt, preview, router, isHydrated]);
 
