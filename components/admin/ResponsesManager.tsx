@@ -5,7 +5,6 @@ import { Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
-  adminBadge,
   adminBtn,
   adminCard,
   adminCardHeader,
@@ -31,29 +30,10 @@ interface ListResponse {
   summary: { total: number; completed: number; incomplete: number };
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: number;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 font-heading text-2xl font-semibold text-white">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-600">{sub}</p>}
-    </div>
-  );
-}
-
 export function ResponsesManager() {
   const [data, setData] = useState<ListResponse | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"all" | "completed" | "incomplete">("all");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [selected, setSelected] = useState<{
     response: ResponseRow;
@@ -66,7 +46,7 @@ export function ResponsesManager() {
     const params = new URLSearchParams({
       page: String(page),
       limit: "20",
-      status,
+      status: "completed",
       sort,
     });
     if (search) params.set("search", search);
@@ -74,7 +54,7 @@ export function ResponsesManager() {
     const json = await res.json();
     setData(json);
     setLoading(false);
-  }, [page, search, status, sort]);
+  }, [page, search, sort]);
 
   useEffect(() => {
     load();
@@ -93,44 +73,39 @@ export function ResponsesManager() {
     load();
   };
 
-  const exportUrl = (format: string) => {
-    const p = new URLSearchParams({ format });
-    if (status === "completed") p.set("completed", "true");
-    return `/api/admin/export?${p}`;
-  };
+  const exportUrl = (format: string) => `/api/admin/export?format=${format}`;
+
+  const completedCount = data?.summary.completed ?? data?.pagination.total ?? 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Total responses" value={data?.summary.total ?? 0} />
-        <StatCard
-          label="Completed"
-          value={data?.summary.completed ?? 0}
-          sub="Finished surveys"
-        />
-        <StatCard
-          label="Incomplete"
-          value={data?.summary.incomplete ?? 0}
-          sub="In progress or abandoned"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <a href={exportUrl("csv")} className={adminBtn("ghost")}>
-          Export CSV
-        </a>
-        <a href={exportUrl("xlsx")} className={adminBtn("primary")}>
-          <Download className="h-3.5 w-3.5" />
-          Export XLSX
-        </a>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs text-slate-500">Completed submissions</p>
+          <p className="font-heading mt-1 text-3xl font-semibold text-white">{completedCount}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href={exportUrl("csv")} className={adminBtn("ghost")}>
+            Export CSV
+          </a>
+          <a href={exportUrl("xlsx")} className={adminBtn("primary")}>
+            <Download className="h-3.5 w-3.5" />
+            Export XLSX
+          </a>
+        </div>
       </div>
 
       <section className={adminCard}>
-        <div className={cn(adminCardHeader, "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between")}>
+        <div
+          className={cn(
+            adminCardHeader,
+            "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          )}
+        >
           <div>
-            <h2 className={adminSectionTitle}>All responses</h2>
+            <h2 className={adminSectionTitle}>Completed responses</h2>
             <p className={adminSectionDescription}>
-              Search and filter participant submissions
+              Only finished surveys are listed and exported
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -144,18 +119,6 @@ export function ResponsesManager() {
               className={cn("w-full sm:w-52", adminInput)}
             />
             <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as typeof status);
-                setPage(1);
-              }}
-              className={adminSelect}
-            >
-              <option value="all">All statuses</option>
-              <option value="completed">Complete</option>
-              <option value="incomplete">Incomplete</option>
-            </select>
-            <select
               value={sort}
               onChange={(e) => setSort(e.target.value as typeof sort)}
               className={adminSelect}
@@ -168,6 +131,8 @@ export function ResponsesManager() {
         <div className="overflow-x-auto p-1">
           {loading ? (
             <p className="p-5 text-sm text-slate-500">Loading…</p>
+          ) : data?.responses.length === 0 ? (
+            <p className="p-5 text-sm text-slate-500">No completed responses yet.</p>
           ) : (
             <>
               <Table>
@@ -177,9 +142,10 @@ export function ResponsesManager() {
                     <TableHead className="text-xs font-medium text-slate-500">
                       Questionnaire
                     </TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">Progress</TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">Status</TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">Created</TableHead>
+                    <TableHead className="text-xs font-medium text-slate-500">
+                      Completed
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-slate-500">Started</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
@@ -196,16 +162,9 @@ export function ResponsesManager() {
                         {r.questionnaire_id}
                       </TableCell>
                       <TableCell className="text-sm text-slate-300">
-                        {r.progress_percentage}%
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={adminBadge(
-                            r.is_completed ? "success" : "warning"
-                          )}
-                        >
-                          {r.is_completed ? "Complete" : "Incomplete"}
-                        </span>
+                        {r.completed_at
+                          ? new Date(r.completed_at).toLocaleString()
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-sm text-slate-500">
                         {new Date(r.created_at).toLocaleString()}
@@ -251,7 +210,12 @@ export function ResponsesManager() {
 
       {selected && (
         <section className={adminCard}>
-          <div className={cn(adminCardHeader, "flex flex-row items-start justify-between gap-4")}>
+          <div
+            className={cn(
+              adminCardHeader,
+              "flex flex-row items-start justify-between gap-4"
+            )}
+          >
             <div>
               <h2 className={adminSectionTitle}>Response detail</h2>
               <p className="mt-1 font-mono text-xs text-slate-500">{selected.response.id}</p>
@@ -276,7 +240,7 @@ export function ResponsesManager() {
           </div>
           <div className="max-h-96 space-y-2 overflow-y-auto p-5">
             {selected.answers.length === 0 ? (
-              <p className="text-sm text-slate-500">No answers saved yet.</p>
+              <p className="text-sm text-slate-500">No answers saved.</p>
             ) : (
               selected.answers.map((a) => (
                 <div

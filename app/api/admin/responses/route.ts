@@ -11,7 +11,6 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit = Math.min(50, Math.max(10, parseInt(searchParams.get("limit") ?? "20", 10)));
   const search = searchParams.get("search")?.trim() ?? "";
-  const status = searchParams.get("status"); // all | completed | incomplete
   const sort = searchParams.get("sort") ?? "desc";
 
   const from = (page - 1) * limit;
@@ -26,14 +25,9 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: sort === "asc" })
     .range(from, to);
 
-  if (status === "completed") {
-    query = query.eq("is_completed", true);
-    countQuery = countQuery.eq("is_completed", true);
-  }
-  if (status === "incomplete") {
-    query = query.eq("is_completed", false);
-    countQuery = countQuery.eq("is_completed", false);
-  }
+  // Admin list shows completed submissions only
+  query = query.eq("is_completed", true);
+  countQuery = countQuery.eq("is_completed", true);
   if (search) {
     const filter = `id.ilike.%${search}%,session_id.ilike.%${search}%,questionnaire_id.ilike.%${search}%`;
     query = query.or(filter);

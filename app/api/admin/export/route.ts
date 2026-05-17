@@ -11,12 +11,14 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const format = searchParams.get("format") ?? "csv";
-  const completedOnly = searchParams.get("completed") === "true";
 
   const supabase = createAdminClient();
 
-  let query = supabase.from("responses").select("*").order("created_at", { ascending: false });
-  if (completedOnly) query = query.eq("is_completed", true);
+  const query = supabase
+    .from("responses")
+    .select("*")
+    .eq("is_completed", true)
+    .order("created_at", { ascending: false });
 
   const { data: responses } = await query;
   const rows = (responses ?? []) as ResponseRow[];
