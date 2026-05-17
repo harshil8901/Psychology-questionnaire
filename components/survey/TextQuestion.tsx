@@ -8,11 +8,8 @@ interface TextQuestionProps {
   type: "text" | "textarea";
   value?: string;
   onChange: (value: string) => void;
-  onBlur?: () => void;
-  onContinue?: () => void;
   placeholder?: string;
   id: string;
-  /** Digits only (e.g. age) */
   numericOnly?: boolean;
 }
 
@@ -20,8 +17,6 @@ export function TextQuestion({
   type,
   value,
   onChange,
-  onBlur,
-  onContinue,
   placeholder,
   id,
   numericOnly = false,
@@ -29,7 +24,7 @@ export function TextQuestion({
   const className = cn(
     "border-white/[0.08] bg-white/[0.04] text-white placeholder:text-slate-500",
     "focus-visible:border-cyan-400/40 focus-visible:ring-cyan-400/20",
-    "text-base sm:text-lg"
+    "text-base"
   );
 
   const handleChange = (raw: string) => {
@@ -40,24 +35,15 @@ export function TextQuestion({
     onChange(raw);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && onContinue) {
-      e.preventDefault();
-      onContinue();
-    }
-  };
-
   if (type === "textarea") {
     return (
       <Textarea
         id={id}
         value={value ?? ""}
         onChange={(e) => handleChange(e.target.value)}
-        onBlur={onBlur}
-        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={4}
-        className={cn(className, "min-h-[120px] resize-none")}
+        className={cn(className, "min-h-[100px] resize-none")}
       />
     );
   }
@@ -71,12 +57,10 @@ export function TextQuestion({
       pattern={numericOnly ? "[0-9]*" : undefined}
       value={value ?? ""}
       onChange={(e) => handleChange(e.target.value)}
-      onBlur={onBlur}
-      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       maxLength={numericOnly ? 3 : undefined}
       aria-describedby={numericOnly ? `${id}-hint` : undefined}
-      className={cn(className, "h-14 min-h-14")}
+      className={cn(className, "h-12")}
     />
   );
 }

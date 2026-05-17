@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { cn } from "@/lib/utils";
 import type { Question } from "@/types/questionnaire";
 import { LikertScale } from "./LikertScale";
 import { SingleChoice } from "./SingleChoice";
@@ -10,45 +11,48 @@ interface QuestionRendererProps {
   question: Question;
   value?: string;
   onChange: (value: string) => void;
-  onBlur?: () => void;
-  onContinue?: () => void;
   error?: string;
   index?: number;
   total?: number;
+  compact?: boolean;
 }
 
 function QuestionRendererComponent({
   question,
   value,
   onChange,
-  onBlur,
-  onContinue,
   error,
   index,
   total,
+  compact = false,
 }: QuestionRendererProps) {
   return (
-    <fieldset className="space-y-4">
+    <fieldset className={cn("space-y-3", compact && "space-y-2.5")}>
       <legend className="sr-only">{question.question}</legend>
       <div>
         {index != null && total != null && (
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             Question {index} of {total}
           </p>
         )}
         <label
           htmlFor={question.id}
-          className="block text-lg font-medium leading-snug text-white sm:text-xl"
+          className={cn(
+            "block font-medium leading-snug text-white",
+            compact ? "text-base" : "text-lg sm:text-xl"
+          )}
         >
           {question.question}
           {question.required && (
-            <span className="ml-1 text-cyan-400" aria-hidden>
+            <span className="ml-1 text-cyan-400/90" aria-hidden>
               *
             </span>
           )}
         </label>
         {question.description && (
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">{question.description}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+            {question.description}
+          </p>
         )}
       </div>
       <div>
@@ -58,6 +62,7 @@ function QuestionRendererComponent({
             options={question.scale}
             value={value}
             onChange={onChange}
+            compact={compact}
           />
         )}
         {question.type === "single_choice" && (
@@ -66,6 +71,7 @@ function QuestionRendererComponent({
             options={question.options}
             value={value}
             onChange={onChange}
+            compact={compact}
           />
         )}
         {(question.type === "text" || question.type === "textarea") && (
@@ -75,14 +81,12 @@ function QuestionRendererComponent({
               type={question.type}
               value={value}
               onChange={onChange}
-              onBlur={onBlur}
-              onContinue={onContinue}
               placeholder={question.placeholder}
               numericOnly={question.id === "age"}
             />
             {question.id === "age" && (
-              <p id={`${question.id}-hint`} className="mt-2 text-xs text-slate-500">
-                Enter your age in years (18–100)
+              <p id={`${question.id}-hint`} className="mt-1.5 text-xs text-slate-500">
+                Numbers only · age 18–100
               </p>
             )}
           </>

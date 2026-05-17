@@ -15,14 +15,14 @@ import {
   buildSurveySteps,
   calculateProgress,
   getSectionById,
-  getStepAutoAdvanceDelay,
   getVisibleStepQuestions,
   isQuestionVisible,
-  isStepComplete,
 } from "@/lib/questionnaire";
 import { cn } from "@/lib/utils";
 import { validateAnswerForQuestion } from "@/lib/validation";
-import type { Question, Questionnaire, SurveyStep } from "@/types/questionnaire";
+import type { Questionnaire, SurveyStep } from "@/types/questionnaire";
+
+const QUESTIONS_PER_PAGE = 4;
 
 export function SurveyFlow({
   questionnaire,
@@ -32,7 +32,10 @@ export function SurveyFlow({
   preview?: boolean;
 }) {
   const router = useRouter();
-  const steps = useMemo(() => buildSurveySteps(questionnaire, 2), [questionnaire]);
+  const steps = useMemo(
+    () => buildSurveySteps(questionnaire, QUESTIONS_PER_PAGE),
+    [questionnaire]
+  );
   const {
     answers,
     currentStepIndex,
@@ -48,9 +51,8 @@ export function SurveyFlow({
   const { savePageAnswers, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [autoAdvancing, setAutoAdvancing] = useState(false);
-  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const advancingRef = useRef(false);
+  const [navigating, setNavigating] = useState(false);
+  const busyRef = useRef(false);
 
   const currentStep: SurveyStep | undefined = steps[currentStepIndex];
   const progress = calculateProgress(
@@ -72,12 +74,6 @@ export function SurveyFlow({
       router.replace("/welcome");
     }
   }, [consentAcceptedAt, preview, router, isHydrated]);
-
-  useEffect(() => {
-    return () => {
-      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
-    };
-  }, []);
 
   const getPageAnswers = useCallback(
     (step: SurveyStep) => {
@@ -148,14 +144,11 @@ export function SurveyFlow({
   }, [responseId, sessionId, answers, router]);
 
   const goNext = useCallback(async () => {
-    if (advancingRef.current) return;
-    advancingRef.current = true;
-    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    if (busyRef.current) return;
+    if (!validateCurrentStep()) return;
 
-    if (!validateCurrentStep()) {
-      advancingRef.current = false;
-      return;
-    }
+    busyRef.current = true;
+    setNavigating(true);
 
     const isLast = currentStepIndex >= steps.length - 1;
 
@@ -185,8 +178,8 @@ export function SurveyFlow({
         lastSectionId: currentStep?.sectionId,
       });
     } finally {
-      advancingRef.current = false;
-      setAutoAdvancing(false);
+      busyRef.current = false;
+      setNavigating(false);
     }
   }, [
     validateCurrentStep,
@@ -203,50 +196,21 @@ export function SurveyFlow({
     answers,
   ]);
 
-  const scheduleAutoAdvance = useCallback(
-    (answerMap: Record<string, string>) => {
-      if (!currentStep || currentStep.kind !== "questions") return;
-      if (currentStepIndex >= steps.length - 1) return;
-      if (advancingRef.current) return;
-      if (!isStepComplete(currentStep, answerMap, validateAnswerForQuestion)) {
-        setAutoAdvancing(false);
-        return;
-      }
-
-      const delay = getStepAutoAdvanceDelay(currentStep);
-      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
-      setAutoAdvancing(true);
-      autoAdvanceTimer.current = setTimeout(() => {
-        void goNext();
-      }, delay);
-    },
-    [currentStep, currentStepIndex, steps.length, goNext]
-  );
-
   const handleAnswerChange = useCallback(
-    (question: Question, value: string) => {
-      const nextAnswers = { ...answers, [question.id]: value };
-      setAnswer(question.id, value);
+    (questionId: string, value: string) => {
+      setAnswer(questionId, value);
       setErrors((e) => {
         const next = { ...e };
-        delete next[question.id];
+        delete next[questionId];
         delete next._form;
         return next;
       });
-
-      scheduleAutoAdvance(nextAnswers);
     },
-    [answers, setAnswer, scheduleAutoAdvance]
+    [setAnswer]
   );
 
-  const handleAnswerBlur = useCallback(() => {
-    scheduleAutoAdvance(useSurveyStore.getState().answers);
-  }, [scheduleAutoAdvance]);
-
   const goBack = useCallback(async () => {
-    if (currentStepIndex <= 0) return;
-    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
-    setAutoAdvancing(false);
+    if (currentStepIndex <= 0 || busyRef.current) return;
 
     if (currentStep?.kind !== "section_intro") {
       await flushCurrentPage();
@@ -264,23 +228,16 @@ export function SurveyFlow({
     ? getVisibleStepQuestions(currentStep, answers)
     : [];
 
-  const pageHint = useMemo(() => {
-    if (!isQuestionStep || isLastStep) return undefined;
-    const count = visibleOnPage.length;
-    if (count >= 2) {
-      const hasText = visibleOnPage.some(
-        (q) => q.type === "text" || q.type === "textarea"
-      );
-      if (hasText) {
-        return "Answer both questions — the next page opens automatically when complete. Use Continue if needed.";
-      }
-      return "Select both answers — the next page opens automatically. Use Continue if needed.";
-    }
-    return "The next page opens automatically when you answer. Use Continue if needed.";
-  }, [isQuestionStep, isLastStep, visibleOnPage]);
+  const compactLayout = visibleOnPage.length >= 3;
+
+  const pageHint = isQuestionStep
+    ? isLastStep
+      ? "Review your answers, then submit when ready."
+      : `Answer all ${visibleOnPage.length} question${visibleOnPage.length === 1 ? "" : "s"} on this page, then select Continue.`
+    : undefined;
 
   return (
-    <motion.div className={cn("min-h-screen", isQuestionStep ? "pb-36 sm:pb-32" : "pb-8")}>
+    <motion.div className={cn("min-h-screen", isQuestionStep ? "pb-32 sm:pb-28" : "pb-8")}>
       {preview && (
         <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
           Preview mode — responses are not saved
@@ -297,7 +254,6 @@ export function SurveyFlow({
         sectionLabel={sectionLabel}
         minutesLeft={progress.minutesLeft}
         isSaving={preview ? false : isSaving}
-        autoAdvancing={autoAdvancing}
       />
 
       <AnimatePresence mode="wait">
@@ -313,12 +269,21 @@ export function SurveyFlow({
           </PageTransition>
         ) : (
           <PageTransition key={`q-${currentStepIndex}`}>
-            <motion.div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7 lg:max-w-3xl">
-              {visibleOnPage.length > 1 && (
-                <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-slate-600">
-                  {visibleOnPage.length} questions on this page
+            <motion.div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-8 lg:max-w-4xl xl:max-w-5xl">
+              <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Page {currentStepIndex + 1} of {steps.length}
+                  </p>
+                  <h2 className="font-heading mt-1 text-lg font-medium text-white sm:text-xl">
+                    {sectionLabel}
+                  </h2>
+                </div>
+                <p className="text-sm text-slate-500">
+                  {visibleOnPage.length} question{visibleOnPage.length === 1 ? "" : "s"} below
                 </p>
-              )}
+              </div>
+
               <GlassCard className="overflow-hidden p-0">
                 <motion.div className="divide-y divide-white/[0.06]">
                   {(() => {
@@ -330,30 +295,22 @@ export function SurveyFlow({
                       return (
                         <motion.div
                           key={q.id}
-                          initial={{ opacity: 0, y: 6 }}
+                          initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: (qIndex - 1) * 0.06, duration: 0.3 }}
-                          className="p-5 sm:p-7 lg:p-8"
+                          transition={{ delay: (qIndex - 1) * 0.04, duration: 0.25 }}
+                          className={cn(
+                            "px-5 py-5 sm:px-8 sm:py-6",
+                            compactLayout && "sm:py-5"
+                          )}
                         >
                           <QuestionRenderer
                             question={q}
                             value={answers[q.id]}
-                            onChange={(v) => handleAnswerChange(q, v)}
-                            onBlur={
-                              q.type === "text" || q.type === "textarea"
-                                ? handleAnswerBlur
-                                : undefined
-                            }
-                            onContinue={goNext}
+                            onChange={(v) => handleAnswerChange(q.id, v)}
                             error={errors[q.id]}
-                            index={
-                              visibleOnPage.length > 1 ? qIndex : undefined
-                            }
-                            total={
-                              visibleOnPage.length > 1
-                                ? visibleOnPage.length
-                                : undefined
-                            }
+                            index={visibleOnPage.length > 1 ? qIndex : undefined}
+                            total={visibleOnPage.length > 1 ? visibleOnPage.length : undefined}
+                            compact={compactLayout}
                           />
                         </motion.div>
                       );
@@ -379,13 +336,9 @@ export function SurveyFlow({
           continueLabel={
             isLastStep ? (preview ? "End preview" : "Submit Survey") : "Continue"
           }
-          pageHint={
-            isLastStep
-              ? "Review your answers, then submit when ready."
-              : pageHint
-          }
+          pageHint={pageHint}
           continueDisabled={!preview && isLastStep && submitting}
-          isLoading={isLastStep && submitting}
+          isLoading={navigating || (isLastStep && submitting)}
         />
       )}
     </motion.div>
