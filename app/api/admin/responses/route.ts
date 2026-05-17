@@ -29,7 +29,8 @@ export async function GET(request: Request) {
   query = query.eq("is_completed", true);
   countQuery = countQuery.eq("is_completed", true);
   if (search) {
-    const filter = `id.ilike.%${search}%,session_id.ilike.%${search}%,questionnaire_id.ilike.%${search}%`;
+    const term = search.replace(/[%_,]/g, "");
+    const filter = `id.ilike.%${term}%,session_id.ilike.%${term}%,questionnaire_id.ilike.%${term}%,demographic_snapshot->>name.ilike.%${term}%`;
     query = query.or(filter);
     countQuery = countQuery.or(filter);
   }

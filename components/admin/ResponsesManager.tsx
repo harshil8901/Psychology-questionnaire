@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -29,12 +29,18 @@ interface ListResponse {
   summary: { total: number; completed: number; incomplete: number };
 }
 
+function respondentName(row: ResponseRow): string {
+  const name = row.demographic_snapshot?.name?.trim();
+  return name || "Unnamed";
+}
+
 export function ResponsesManager() {
   const [data, setData] = useState<ListResponse | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,12 +61,40 @@ export function ResponsesManager() {
     load();
   }, [load]);
 
+  const handleDelete = async (row: ResponseRow) => {
+    const name = respondentName(row);
+    if (
+      !window.confirm(
+        `Delete the response for "${name}"? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(row.id);
+    try {
+      const res = await fetch(`/api/admin/responses/${row.id}`, {
+        method: "DELETE",
+      });
+      const body = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        throw new Error(body.error ?? "Delete failed");
+      }
+      await load();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      window.alert(message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const exportUrl = (format: string) => `/api/admin/export?format=${format}`;
 
   const completedCount = data?.summary.completed ?? data?.pagination.total ?? 0;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs text-slate-500">Completed submissions</p>
@@ -92,7 +126,7 @@ export function ResponsesManager() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Input
-              placeholder="Search ID or session…"
+              placeholder="Search by name…"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -110,17 +144,17 @@ export function ResponsesManager() {
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto p-1">
+        <div className="overflow-x-auto p-1 [-webkit-overflow-scrolling:touch]">
           {loading ? (
             <p className="p-5 text-sm text-slate-500">Loading…</p>
           ) : !data || data.responses.length === 0 ? (
             <p className="p-5 text-sm text-slate-500">No completed responses yet.</p>
           ) : (
             <>
-              <Table>
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow className="border-white/[0.05] hover:bg-transparent">
-                    <TableHead className="text-xs font-medium text-slate-500">ID</TableHead>
+                    <TableHead className="text-xs font-medium text-slate-500">Name</TableHead>
                     <TableHead className="text-xs font-medium text-slate-500">
                       Questionnaire
                     </TableHead>
@@ -128,6 +162,9 @@ export function ResponsesManager() {
                       Completed
                     </TableHead>
                     <TableHead className="text-xs font-medium text-slate-500">Started</TableHead>
+                    <TableHead className="sticky right-0 z-10 min-w-[100px] bg-[#0a0d12] text-right text-xs font-medium text-slate-500 shadow-[-8px_0_12px_rgba(0,0,0,0.35)]">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -136,19 +173,31 @@ export function ResponsesManager() {
                       key={r.id}
                       className="border-white/[0.04] hover:bg-white/[0.02]"
                     >
-                      <TableCell className="font-mono text-xs text-slate-400">
-                        {r.id.slice(0, 8)}…
+                      <TableCell className="max-w-[180px] truncate text-sm font-medium text-slate-200">
+                        {respondentName(r)}
                       </TableCell>
                       <TableCell className="text-sm text-slate-400">
                         {r.questionnaire_id}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-300">
+                      <TableCell className="whitespace-nowrap text-sm text-slate-300">
                         {r.completed_at
                           ? new Date(r.completed_at).toLocaleString()
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="whitespace-nowrap text-sm text-slate-500">
                         {new Date(r.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="sticky right-0 z-10 bg-[#0a0d12] text-right shadow-[-8px_0_12px_rgba(0,0,0,0.35)]">
+                        <button
+                          type="button"
+                          className={cn(adminBtn("danger"), "shrink-0 whitespace-nowrap")}
+                          disabled={deletingId === r.id}
+                          onClick={() => handleDelete(r)}
+                          aria-label={`Delete response for ${respondentName(r)}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          <span>{deletingId === r.id ? "Deleting…" : "Delete"}</span>
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
