@@ -2,6 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { surveyPrimaryBtnCompact } from "@/components/survey/survey-ui";
+import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 interface ConsentModalProps {
@@ -87,17 +89,17 @@ export function ConsentModal({
                   for academic research and analysis only.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 border-t border-white/[0.05] p-4 sm:flex-row-reverse">
+              <div className="flex flex-col gap-3 border-t border-white/[0.05] p-4 sm:flex-row-reverse">
                 <Button
                   onClick={onAccept}
-                  className="h-12 flex-1 border border-white/10 bg-white/95 text-[#020308] hover:bg-white"
+                  className={cn(surveyPrimaryBtnCompact, "h-14 flex-1")}
                 >
                   Accept & begin
                 </Button>
                 <Button
                   variant="outline"
                   onClick={onDecline}
-                  className="h-12 flex-1 border-white/[0.08] bg-transparent text-slate-400 hover:bg-white/[0.04]"
+                  className="h-14 flex-1 border-white/[0.08] bg-transparent text-base text-slate-400 hover:bg-white/[0.04]"
                 >
                   Decline
                 </Button>

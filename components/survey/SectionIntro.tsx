@@ -18,6 +18,7 @@ import {
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/layout/GlassCard";
 import type { SurveySection } from "@/types/questionnaire";
+import { surveyPrimaryBtn } from "@/components/survey/survey-ui";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -51,27 +52,24 @@ export function SectionIntro({ section, questionCount, onContinue }: SectionIntr
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200 }}
-          className={cn(
-            "mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br",
-            section.themeGradient ?? "from-cyan-500 to-blue-500"
-          )}
+          className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.06]"
         >
-          <Icon className="h-8 w-8 text-white" aria-hidden />
+          <Icon className="h-8 w-8 text-slate-200" aria-hidden />
         </motion.div>
         <h2 className="text-2xl font-semibold text-white">{section.title}</h2>
         <p className="mt-3 text-slate-400 leading-relaxed">{section.description}</p>
         <p className="mt-4 text-sm text-slate-500">
           {questionCount} questions · ~{section.estimatedTime ?? 3} min
         </p>
-        <p className="mt-2 text-sm text-cyan-400/80">
+        <p className="mt-2 text-sm text-slate-500">
           Take your time — there are no right or wrong answers.
         </p>
         <motion.button
           type="button"
           onClick={onContinue}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="mt-8 w-full rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          className={cn(surveyPrimaryBtn, "mt-8 w-full")}
         >
           Continue
         </motion.button>

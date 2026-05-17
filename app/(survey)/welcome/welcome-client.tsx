@@ -7,7 +7,9 @@ import { Clock, Lock, Sparkles } from "lucide-react";
 import { ConsentModal } from "@/components/survey/ConsentModal";
 import { GlassCard } from "@/components/layout/GlassCard";
 import { StaggerContainer, StaggerItem } from "@/components/animations/PageTransition";
+import { surveyPrimaryBtn } from "@/components/survey/survey-ui";
 import { useSurveySession } from "@/hooks/useSurveySession";
+import { cn } from "@/lib/utils";
 import type { Questionnaire } from "@/types/questionnaire";
 
 export function WelcomeClient({
@@ -79,7 +81,7 @@ export function WelcomeClient({
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={() => (preview ? handleAccept() : setConsentOpen(true))}
-            className="w-full max-w-md rounded-xl border border-white/10 bg-gradient-to-r from-slate-100 via-slate-200 to-slate-300 px-8 py-4 text-lg font-semibold text-[#020308] shadow-lg shadow-black/30 transition-shadow hover:shadow-xl"
+            className={cn(surveyPrimaryBtn, "w-full max-w-md")}
           >
             {preview ? "Preview survey" : "Begin study"}
           </motion.button>

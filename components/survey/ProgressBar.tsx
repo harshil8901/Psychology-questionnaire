@@ -26,7 +26,7 @@ export function ProgressBar({
         aria-label="Survey progress"
       >
         <motion.div
-          className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500"
+          className="h-full bg-white/70"
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -40,7 +40,7 @@ export function ProgressBar({
           className="min-w-0 flex-1"
         >
           {sectionLabel && (
-            <p className="truncate text-xs font-medium uppercase tracking-wider text-cyan-400/90">
+            <p className="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               {sectionLabel}
             </p>
           )}

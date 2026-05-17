@@ -33,7 +33,7 @@ export function SingleChoice({ options, value, onChange, name }: SingleChoicePro
             className={cn(
               "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all",
               selected
-                ? "border-cyan-400/40 bg-cyan-500/10 text-white shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+                ? "border-white/25 bg-white/[0.1] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]"
             )}
           >
@@ -49,7 +49,7 @@ export function SingleChoice({ options, value, onChange, name }: SingleChoicePro
             <span
               className={cn(
                 "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                selected ? "border-cyan-400 bg-cyan-400" : "border-slate-500"
+                selected ? "border-white bg-white" : "border-slate-500"
               )}
             >
               {selected && <span className="h-2 w-2 rounded-full bg-[#020308]" />}
