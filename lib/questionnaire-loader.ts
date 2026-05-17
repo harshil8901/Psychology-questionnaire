@@ -40,13 +40,29 @@ export function getFileQuestionnaire(id: string): Questionnaire | null {
 }
 
 export async function getHiddenQuestionnaireIds(): Promise<Set<string>> {
+  const hidden = new Set<string>();
   try {
     const supabase = createAdminClient();
-    const { data } = await supabase.from("questionnaire_hidden").select("id");
-    return new Set((data ?? []).map((row) => row.id));
+
+    const { data: hiddenRows, error: hiddenTableError } = await supabase
+      .from("questionnaire_hidden")
+      .select("id");
+    if (!hiddenTableError) {
+      for (const row of hiddenRows ?? []) hidden.add(row.id);
+    }
+
+    // Tombstones work even when migration 003 was not applied yet
+    const { data: tombstones, error: tombstoneError } = await supabase
+      .from("questionnaire_configs")
+      .select("id")
+      .eq("source", "hidden");
+    if (!tombstoneError) {
+      for (const row of tombstones ?? []) hidden.add(row.id);
+    }
   } catch {
-    return new Set();
+    // Supabase unavailable
   }
+  return hidden;
 }
 
 async function isQuestionnaireHidden(id: string): Promise<boolean> {
@@ -68,7 +84,8 @@ export async function getActiveQuestionnaireId(): Promise<string> {
 
     const { data: rows } = await supabase
       .from("questionnaire_configs")
-      .select("id")
+      .select("id, source")
+      .neq("source", "hidden")
       .order("updated_at", { ascending: false });
     for (const row of rows ?? []) {
       if (!hidden.has(row.id)) return row.id;
@@ -91,11 +108,11 @@ export async function loadQuestionnaire(id?: string): Promise<Questionnaire> {
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("questionnaire_configs")
-      .select("config")
+      .select("config, source")
       .eq("id", targetId)
       .maybeSingle();
 
-    if (data?.config) {
+    if (data?.config && data.source !== "hidden") {
       const parsed = questionnaireSchema.parse(data.config);
       return parsed as Questionnaire;
     }
@@ -154,6 +171,37 @@ export function serializeQuestionnaire(q: Questionnaire): string {
   return JSON.stringify(q, null, 2);
 }
 
+async function hideBuiltInQuestionnaire(id: string): Promise<void> {
+  const file = getFileQuestionnaire(id);
+  if (!file) return;
+
+  const supabase = createAdminClient();
+  const { error: hiddenError } = await supabase
+    .from("questionnaire_hidden")
+    .upsert({ id, hidden_at: new Date().toISOString() });
+
+  if (!hiddenError) return;
+
+  // Fallback when questionnaire_hidden table is missing (migration 003 not run)
+  const { error: tombstoneError } = await supabase.from("questionnaire_configs").upsert({
+    id,
+    title: file.title,
+    version: file.version,
+    estimated_time: file.estimatedTime,
+    config: file,
+    is_active: false,
+    source: "hidden",
+    updated_at: new Date().toISOString(),
+  });
+  if (tombstoneError) {
+    throw new Error(
+      hiddenError.message.includes("does not exist")
+        ? `Could not hide built-in questionnaire. Run migration 003_questionnaire_hidden.sql in Supabase, or try again (${tombstoneError.message}).`
+        : tombstoneError.message
+    );
+  }
+}
+
 /** Remove a questionnaire from admin + participant use (hides built-ins; deletes DB rows). */
 export async function removeQuestionnaire(id: string): Promise<void> {
   const supabase = createAdminClient();
@@ -163,10 +211,5 @@ export async function removeQuestionnaire(id: string): Promise<void> {
     .eq("id", id);
   if (configError) throw new Error(configError.message);
 
-  if (!getFileQuestionnaire(id)) return;
-
-  const { error: hiddenError } = await supabase
-    .from("questionnaire_hidden")
-    .upsert({ id, hidden_at: new Date().toISOString() });
-  if (hiddenError) throw new Error(hiddenError.message);
+  await hideBuiltInQuestionnaire(id);
 }

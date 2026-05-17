@@ -59,6 +59,11 @@ export async function POST(request: Request) {
   }
 
   await supabase.from("questionnaire_hidden").delete().eq("id", config.id);
+  await supabase
+    .from("questionnaire_configs")
+    .delete()
+    .eq("id", config.id)
+    .eq("source", "hidden");
 
   return NextResponse.json({
     ok: true,

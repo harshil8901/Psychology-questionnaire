@@ -20,6 +20,9 @@ export function QuestionnaireManager() {
   const [list, setList] = useState<QuestionnaireMeta[]>([]);
   const [json, setJson] = useState("");
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [listMessage, setListMessage] = useState<{ type: "ok" | "err"; text: string } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -118,16 +121,17 @@ export function QuestionnaireManager() {
     }
 
     setDeletingId(q.id);
-    setMessage(null);
+    setListMessage(null);
     try {
-      const res = await fetch(`/api/admin/questionnaires/${q.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/admin/questionnaires/${encodeURIComponent(q.id)}`,
+        { method: "DELETE" }
+      );
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         throw new Error(data.error ?? "Delete failed");
       }
-      setMessage({ type: "ok", text: `"${q.title}" removed` });
+      setListMessage({ type: "ok", text: `"${q.title}" removed` });
       if (json.trim()) {
         try {
           const parsed = JSON.parse(json) as { id?: string };
@@ -139,7 +143,7 @@ export function QuestionnaireManager() {
       await load();
     } catch (err) {
       const text = err instanceof Error ? err.message : "Delete failed";
-      setMessage({ type: "err", text });
+      setListMessage({ type: "err", text });
     } finally {
       setDeletingId(null);
     }
@@ -155,6 +159,19 @@ export function QuestionnaireManager() {
           </p>
         </div>
         <div className="p-5">
+          {listMessage && (
+            <p
+              className={cn(
+                "mb-4 rounded-lg border px-3 py-2 text-sm",
+                listMessage.type === "ok"
+                  ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-300"
+                  : "border-rose-500/20 bg-rose-500/5 text-rose-300"
+              )}
+              role="status"
+            >
+              {listMessage.text}
+            </p>
+          )}
           {loading ? (
             <p className="text-sm text-slate-500">Loading…</p>
           ) : list.length === 0 ? (
