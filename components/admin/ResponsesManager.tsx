@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -13,14 +13,6 @@ import {
   adminSectionDescription,
   adminSectionTitle,
 } from "@/components/admin/admin-ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { ResponseRow } from "@/types/database";
 
 interface ListResponse {
@@ -29,9 +21,40 @@ interface ListResponse {
   summary: { total: number; completed: number; incomplete: number };
 }
 
+const DEMO_LABELS: Record<string, string> = {
+  age: "Age",
+  gender: "Gender",
+  education: "Education",
+  experience: "Experience",
+  industry: "Industry",
+  location: "Location",
+  work_mode: "Work mode",
+};
+
 function respondentName(row: ResponseRow): string {
   const name = row.demographic_snapshot?.name?.trim();
-  return name || "Unnamed";
+  return name || "Unnamed respondent";
+}
+
+function demographicLines(snapshot: ResponseRow["demographic_snapshot"]): string[] {
+  if (!snapshot) return [];
+  const lines: string[] = [];
+  for (const [key, label] of Object.entries(DEMO_LABELS)) {
+    const value = snapshot[key]?.trim();
+    if (value) lines.push(`${label}: ${value}`);
+  }
+  return lines;
+}
+
+function formatWhen(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function ResponsesManager() {
@@ -94,7 +117,7 @@ export function ResponsesManager() {
   const completedCount = data?.summary.completed ?? data?.pagination.total ?? 0;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs text-slate-500">Completed submissions</p>
@@ -121,18 +144,18 @@ export function ResponsesManager() {
           <div>
             <h2 className={adminSectionTitle}>Completed responses</h2>
             <p className={adminSectionDescription}>
-              Only finished surveys are listed and exported
+              Participant name, demographics, and submission time
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Input
-              placeholder="Search by name…"
+              placeholder="Search name, age, location…"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className={cn("w-full sm:w-52", adminInput)}
+              className={cn("w-full sm:w-56", adminInput)}
             />
             <select
               value={sort}
@@ -144,66 +167,77 @@ export function ResponsesManager() {
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto p-1 [-webkit-overflow-scrolling:touch]">
+
+        <div className="p-2 sm:p-3">
           {loading ? (
             <p className="p-5 text-sm text-slate-500">Loading…</p>
           ) : !data || data.responses.length === 0 ? (
             <p className="p-5 text-sm text-slate-500">No completed responses yet.</p>
           ) : (
             <>
-              <Table className="min-w-[640px]">
-                <TableHeader>
-                  <TableRow className="border-white/[0.05] hover:bg-transparent">
-                    <TableHead className="text-xs font-medium text-slate-500">Name</TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">
-                      Questionnaire
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">
-                      Completed
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-slate-500">Started</TableHead>
-                    <TableHead className="sticky right-0 z-10 min-w-[100px] bg-[#0a0d12] text-right text-xs font-medium text-slate-500 shadow-[-8px_0_12px_rgba(0,0,0,0.35)]">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.responses.map((r) => (
-                    <TableRow
+              <ul className="divide-y divide-white/[0.05]">
+                {data.responses.map((r) => {
+                  const details = demographicLines(r.demographic_snapshot);
+                  return (
+                    <li
                       key={r.id}
-                      className="border-white/[0.04] hover:bg-white/[0.02]"
+                      className="flex flex-col gap-4 px-3 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-4"
                     >
-                      <TableCell className="max-w-[180px] truncate text-sm font-medium text-slate-200">
-                        {respondentName(r)}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-400">
-                        {r.questionnaire_id}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-slate-300">
-                        {r.completed_at
-                          ? new Date(r.completed_at).toLocaleString()
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-slate-500">
-                        {new Date(r.created_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="sticky right-0 z-10 bg-[#0a0d12] text-right shadow-[-8px_0_12px_rgba(0,0,0,0.35)]">
-                        <button
-                          type="button"
-                          className={cn(adminBtn("danger"), "shrink-0 whitespace-nowrap")}
-                          disabled={deletingId === r.id}
-                          onClick={() => handleDelete(r)}
-                          aria-label={`Delete response for ${respondentName(r)}`}
+                      <div className="flex min-w-0 flex-1 gap-3">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]"
+                          aria-hidden
                         >
-                          <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span>{deletingId === r.id ? "Deleting…" : "Delete"}</span>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between border-t border-white/[0.05] px-4 py-3">
+                          <User className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-base font-semibold text-slate-100">
+                            {respondentName(r)}
+                          </p>
+                          {details.length > 0 ? (
+                            <dl className="mt-2 grid gap-1 sm:grid-cols-2">
+                              {details.map((line) => {
+                                const [label, ...rest] = line.split(": ");
+                                return (
+                                  <div key={line} className="text-sm">
+                                    <dt className="inline text-slate-500">{label}: </dt>
+                                    <dd className="inline text-slate-300">{rest.join(": ")}</dd>
+                                  </div>
+                                );
+                              })}
+                            </dl>
+                          ) : (
+                            <p className="mt-1 text-sm text-slate-500">
+                              No demographic details recorded
+                            </p>
+                          )}
+                          <p className="mt-3 text-xs text-slate-500">
+                            Completed {formatWhen(r.completed_at)}
+                            {r.created_at !== r.completed_at && (
+                              <span className="text-slate-600">
+                                {" "}
+                                · Started {formatWhen(r.created_at)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={cn(adminBtn("danger"), "w-full shrink-0 sm:w-auto")}
+                        disabled={deletingId === r.id}
+                        onClick={() => handleDelete(r)}
+                        aria-label={`Delete response for ${respondentName(r)}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span>{deletingId === r.id ? "Deleting…" : "Delete"}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="flex items-center justify-between border-t border-white/[0.05] px-3 py-3 sm:px-4">
                 <button
                   type="button"
                   className={adminBtn("ghost")}

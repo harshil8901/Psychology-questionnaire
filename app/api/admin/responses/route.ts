@@ -30,7 +30,18 @@ export async function GET(request: Request) {
   countQuery = countQuery.eq("is_completed", true);
   if (search) {
     const term = search.replace(/[%_,]/g, "");
-    const filter = `id.ilike.%${term}%,session_id.ilike.%${term}%,questionnaire_id.ilike.%${term}%,demographic_snapshot->>name.ilike.%${term}%`;
+    const filter = [
+      `demographic_snapshot->>name.ilike.%${term}%`,
+      `demographic_snapshot->>age.ilike.%${term}%`,
+      `demographic_snapshot->>gender.ilike.%${term}%`,
+      `demographic_snapshot->>education.ilike.%${term}%`,
+      `demographic_snapshot->>experience.ilike.%${term}%`,
+      `demographic_snapshot->>industry.ilike.%${term}%`,
+      `demographic_snapshot->>location.ilike.%${term}%`,
+      `demographic_snapshot->>work_mode.ilike.%${term}%`,
+      `id.ilike.%${term}%`,
+      `session_id.ilike.%${term}%`,
+    ].join(",");
     query = query.or(filter);
     countQuery = countQuery.or(filter);
   }
