@@ -1,40 +1,4 @@
--- Premium Research Questionnaire Platform Schema
-
-create extension if not exists "uuid-ossp";
-
--- Questionnaire versions (JSON snapshot for audit / sync)
-create table if not exists public.questionnaire_versions (
-  id uuid primary key default gen_random_uuid(),
-  questionnaire_id text not null,
-  version text not null,
-  config jsonb not null,
-  created_at timestamptz not null default now(),
-  unique (questionnaire_id, version)
-);
-
--- Optional normalized sections/questions (for DB-driven admin; app reads TS config)
-create table if not exists public.sections (
-  id text primary key,
-  questionnaire_id text not null,
-  title text not null,
-  description text,
-  order_index int not null default 0,
-  icon text,
-  estimated_time int,
-  theme_gradient text
-);
-
-create table if not exists public.questions (
-  id text primary key,
-  section_id text not null references public.sections(id) on delete cascade,
-  question_text text not null,
-  question_type text not null,
-  options jsonb,
-  required boolean not null default true,
-  order_index int not null default 0,
-  analytics_key text,
-  metadata jsonb
-);
+-- Research questionnaire platform schema
 
 create table if not exists public.responses (
   id uuid primary key default gen_random_uuid(),
@@ -51,9 +15,7 @@ create table if not exists public.responses (
   last_section_id text,
   last_question_id text,
   current_step_index int not null default 0,
-  demographic_snapshot jsonb,
-  ip_hash text,
-  user_agent text
+  demographic_snapshot jsonb
 );
 
 create table if not exists public.answers (
@@ -88,68 +50,28 @@ create index if not exists idx_responses_created on public.responses(created_at 
 create index if not exists idx_answers_response on public.answers(response_id);
 create index if not exists idx_analytics_event on public.analytics(event_type, created_at desc);
 
-alter table public.questionnaire_versions enable row level security;
-alter table public.sections enable row level security;
-alter table public.questions enable row level security;
 alter table public.responses enable row level security;
 alter table public.answers enable row level security;
 alter table public.analytics enable row level security;
 alter table public.admin_users enable row level security;
 
--- Public can create/update their own in-progress response via service role API routes.
--- Anon insert for responses/answers via API only (service role in routes).
+create policy "responses_select" on public.responses for select using (true);
+create policy "responses_insert" on public.responses for insert with check (true);
+create policy "responses_update" on public.responses for update using (true);
 
-create policy "responses_select_own_session"
-  on public.responses for select
-  using (true);
+create policy "answers_select" on public.answers for select using (true);
+create policy "answers_insert" on public.answers for insert with check (true);
+create policy "answers_update" on public.answers for update using (true);
 
-create policy "responses_insert"
-  on public.responses for insert
-  with check (true);
+create policy "analytics_insert" on public.analytics for insert with check (true);
 
-create policy "responses_update"
-  on public.responses for update
-  using (true);
+create policy "admin_users_self" on public.admin_users for select using (auth.uid() = id);
 
-create policy "answers_select"
-  on public.answers for select
-  using (true);
+create policy "responses_admin_all" on public.responses for all
+  using (exists (select 1 from public.admin_users where id = auth.uid()));
 
-create policy "answers_insert"
-  on public.answers for insert
-  with check (true);
+create policy "answers_admin_all" on public.answers for all
+  using (exists (select 1 from public.admin_users where id = auth.uid()));
 
-create policy "answers_update"
-  on public.answers for update
-  using (true);
-
-create policy "analytics_insert"
-  on public.analytics for insert
-  with check (true);
-
-create policy "admin_users_self"
-  on public.admin_users for select
-  using (auth.uid() = id);
-
-create policy "questionnaire_versions_read"
-  on public.questionnaire_versions for select
-  using (true);
-
--- Admin policies (authenticated admin only)
-create policy "responses_admin_all"
-  on public.responses for all
-  using (
-    exists (select 1 from public.admin_users where id = auth.uid())
-  );
-
-create policy "answers_admin_all"
-  on public.answers for all
-  using (
-    exists (select 1 from public.admin_users where id = auth.uid())
-  );
-
-create policy "analytics_admin_read"
-  on public.analytics for select
-  using (
-    exists (select 1 from public.admin_users where id = auth.uid())
-  );
+create policy "analytics_admin_read" on public.analytics for select
+  using (exists (select 1 from public.admin_users where id = auth.uid()));

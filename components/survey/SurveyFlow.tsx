@@ -15,16 +15,20 @@ import { useSurveyStore } from "@/store/survey-store";
 import {
   buildSurveySteps,
   calculateProgress,
-  getQuestionnaire,
   getSectionById,
   isQuestionVisible,
 } from "@/lib/questionnaire";
 import { validateAnswerForQuestion } from "@/lib/validation";
-import type { Question, SurveyStep } from "@/types/questionnaire";
+import type { Question, Questionnaire, SurveyStep } from "@/types/questionnaire";
 
-export function SurveyFlow() {
+export function SurveyFlow({
+  questionnaire,
+  preview = false,
+}: {
+  questionnaire: Questionnaire;
+  preview?: boolean;
+}) {
   const router = useRouter();
-  const questionnaire = useMemo(() => getQuestionnaire(), []);
   const steps = useMemo(() => buildSurveySteps(questionnaire, 2), [questionnaire]);
   const {
     answers,
@@ -36,7 +40,7 @@ export function SurveyFlow() {
     isSaving,
     consentAcceptedAt,
   } = useSurveyStore();
-  const { saveAnswer, syncProgress } = useAutosave();
+  const { saveAnswer, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -57,10 +61,11 @@ export function SurveyFlow() {
   }, [currentStep, questionnaire]);
 
   useEffect(() => {
+    if (preview) return;
     if (!consentAcceptedAt) {
       router.replace("/welcome");
     }
-  }, [consentAcceptedAt, router]);
+  }, [consentAcceptedAt, preview, router]);
 
   const handleAnswerChange = useCallback(
     (question: Question, sectionId: string, value: string) => {
@@ -93,6 +98,10 @@ export function SurveyFlow() {
 
     const isLast = currentStepIndex >= steps.length - 1;
     if (isLast) {
+      if (preview) {
+        router.push("/welcome");
+        return;
+      }
       setShowCaptcha(true);
       return;
     }
@@ -114,6 +123,8 @@ export function SurveyFlow() {
     questionnaire,
     answers,
     currentStep,
+    preview,
+    router,
   ]);
 
   const goBack = useCallback(() => {
@@ -152,11 +163,16 @@ export function SurveyFlow() {
 
   return (
     <div className="min-h-screen pb-28">
+      {preview && (
+        <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
+          Preview mode — responses are not saved
+        </div>
+      )}
       <ProgressBar
         percentage={progress.percentage}
         sectionLabel={sectionLabel}
         minutesLeft={progress.minutesLeft}
-        isSaving={isSaving}
+        isSaving={preview ? false : isSaving}
       />
 
       <AnimatePresence mode="wait">
@@ -219,21 +235,30 @@ export function SurveyFlow() {
         <SurveyNavigation
           canGoBack={currentStepIndex > 0}
           onBack={goBack}
-          onNext={showCaptcha && isLastStep ? handleSubmit : goNext}
+          onNext={
+            preview && isLastStep
+              ? () => router.push("/welcome")
+              : showCaptcha && isLastStep
+                ? handleSubmit
+                : goNext
+          }
           nextLabel={
-            showCaptcha && isLastStep
-              ? submitting
-                ? "Submitting…"
-                : "Submit Survey"
-              : isLastStep
-                ? "Review & Submit"
-                : "Continue"
+            preview && isLastStep
+              ? "End preview"
+              : showCaptcha && isLastStep
+                ? submitting
+                  ? "Submitting…"
+                  : "Submit Survey"
+                : isLastStep
+                  ? "Review & Submit"
+                  : "Continue"
           }
           isNextDisabled={
-            showCaptcha && isLastStep
-              ? submitting ||
-                (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)
-              : false
+            !preview &&
+            showCaptcha &&
+            isLastStep &&
+            (submitting ||
+              (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken))
           }
           isLoading={submitting || isSaving}
         />

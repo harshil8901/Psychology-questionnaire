@@ -25,13 +25,3 @@ export interface AnswerRow {
   created_at: string;
   updated_at: string;
 }
-
-export interface AnalyticsEventRow {
-  id: string;
-  response_id: string | null;
-  event_type: string;
-  section_id: string | null;
-  question_id: string | null;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-}

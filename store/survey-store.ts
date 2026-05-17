@@ -2,8 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AnswerValue } from "@/types/questionnaire";
-
 interface SurveyState {
   sessionId: string | null;
   responseId: string | null;
@@ -73,11 +71,3 @@ export const useSurveyStore = create<SurveyState>()(
     }
   )
 );
-
-export function toAnswerPayload(
-  sectionId: string,
-  questionId: string,
-  value: string
-): AnswerValue {
-  return { questionId, sectionId, value };
-}

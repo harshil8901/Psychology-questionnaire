@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getQuestionnaire } from "@/lib/questionnaire";
+import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
 import { sessionSchema } from "@/lib/validation";
 import { headers } from "next/headers";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   const { sessionId, questionnaireId } = parsed.data;
-  const questionnaire = getQuestionnaire(questionnaireId);
+  const questionnaire = await loadQuestionnaire(questionnaireId);
 
   try {
     const supabase = createAdminClient();

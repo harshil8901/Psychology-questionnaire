@@ -4,13 +4,13 @@ import { useCallback, useRef } from "react";
 import { useSurveyStore } from "@/store/survey-store";
 import { sanitizeText } from "@/lib/validation";
 
-export function useAutosave() {
+export function useAutosave(preview = false) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { responseId, sessionId, setSaving, setLastSaved } = useSurveyStore();
 
   const saveAnswer = useCallback(
     async (questionId: string, sectionId: string, value: string) => {
-      if (!responseId || !sessionId) return;
+      if (preview || !responseId || !sessionId) return;
 
       const clean = sanitizeText(value);
 
@@ -37,7 +37,7 @@ export function useAutosave() {
         }
       }, 400);
     },
-    [responseId, sessionId, setSaving, setLastSaved]
+    [preview, responseId, sessionId, setSaving, setLastSaved]
   );
 
   const syncProgress = useCallback(
@@ -47,7 +47,7 @@ export function useAutosave() {
       lastSectionId?: string;
       lastQuestionId?: string;
     }) => {
-      if (!responseId || !sessionId) return;
+      if (preview || !responseId || !sessionId) return;
 
       await fetch(`/api/responses/${responseId}`, {
         method: "PATCH",
@@ -55,7 +55,7 @@ export function useAutosave() {
         body: JSON.stringify({ sessionId, ...payload }),
       });
     },
-    [responseId, sessionId]
+    [preview, responseId, sessionId]
   );
 
   return { saveAnswer, syncProgress };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getQuestionnaire, getAllQuestions } from "@/lib/questionnaire";
+import { getAllQuestions } from "@/lib/questionnaire";
+import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
 import { submitSchema, validateAnswerForQuestion } from "@/lib/validation";
 import { verifyTurnstile } from "@/lib/turnstile";
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Consent required" }, { status: 400 });
     }
 
-    const questionnaire = getQuestionnaire(response.questionnaire_id);
+    const questionnaire = await loadQuestionnaire(response.questionnaire_id);
     const questions = getAllQuestions(questionnaire);
 
     const { data: answerRows } = await supabase

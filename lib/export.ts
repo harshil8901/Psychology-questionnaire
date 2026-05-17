@@ -1,23 +1,35 @@
 import * as XLSX from "xlsx";
-import { getAllQuestions, getQuestionnaire } from "@/lib/questionnaire";
+import { getAllQuestions } from "@/lib/questionnaire";
+import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import type { AnswerRow, ResponseRow } from "@/types/database";
 
-export function buildExportRows(
+export async function buildExportRows(
   responses: ResponseRow[],
-  answersByResponse: Map<string, AnswerRow[]>,
-  questionnaireId = "flourishing-workplace"
+  answersByResponse: Map<string, AnswerRow[]>
 ) {
-  const questionnaire = getQuestionnaire(questionnaireId);
-  const questions = getAllQuestions(questionnaire);
+  const questionnaireCache = new Map<string, Awaited<ReturnType<typeof loadQuestionnaire>>>();
+  const allQuestionIds = new Set<string>();
+
+  for (const r of responses) {
+    if (!questionnaireCache.has(r.questionnaire_id)) {
+      questionnaireCache.set(r.questionnaire_id, await loadQuestionnaire(r.questionnaire_id));
+    }
+    getAllQuestions(questionnaireCache.get(r.questionnaire_id)!).forEach((q) =>
+      allQuestionIds.add(q.id)
+    );
+  }
+
+  const questionIds = [...allQuestionIds];
 
   const headers = [
     "response_id",
     "session_id",
+    "questionnaire_id",
     "created_at",
     "completed_at",
     "is_completed",
     "progress_percentage",
-    ...questions.map((q) => q.id),
+    ...questionIds,
   ];
 
   const rows = responses.map((r) => {
@@ -27,11 +39,12 @@ export function buildExportRows(
     return {
       response_id: r.id,
       session_id: r.session_id,
+      questionnaire_id: r.questionnaire_id,
       created_at: r.created_at,
       completed_at: r.completed_at ?? "",
       is_completed: r.is_completed,
       progress_percentage: r.progress_percentage,
-      ...Object.fromEntries(questions.map((q) => [q.id, answerMap[q.id] ?? ""])),
+      ...Object.fromEntries(questionIds.map((id) => [id, answerMap[id] ?? ""])),
     };
   });
 

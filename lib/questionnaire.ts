@@ -1,15 +1,6 @@
-import { questionnaire as flourishingWorkplace } from "@/data/questionnaires/flourishing-workplace";
 import type { Question, Questionnaire, SurveyStep } from "@/types/questionnaire";
 
-const REGISTRY: Record<string, Questionnaire> = {
-  "flourishing-workplace": flourishingWorkplace,
-};
-
-export function getQuestionnaire(id = "flourishing-workplace"): Questionnaire {
-  const q = REGISTRY[id];
-  if (!q) throw new Error(`Questionnaire not found: ${id}`);
-  return q;
-}
+export const DEFAULT_QUESTIONNAIRE_ID = "flourishing-workplace";
 
 export function getAllQuestions(questionnaire: Questionnaire): Question[] {
   return questionnaire.sections.flatMap((s) =>
@@ -70,7 +61,10 @@ export function calculateProgress(
   const percentage = Math.min(100, Math.round(Math.max(stepProgress, answerProgress) * 10) / 10);
 
   const remaining = Math.max(0, total - answeredCount);
-  const minutesLeft = Math.max(1, Math.ceil((remaining / Math.max(total, 1)) * questionnaire.estimatedTime));
+  const minutesLeft = Math.max(
+    1,
+    Math.ceil((remaining / Math.max(total, 1)) * questionnaire.estimatedTime)
+  );
 
   return { percentage, answeredCount, total, minutesLeft };
 }

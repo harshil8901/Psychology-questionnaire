@@ -1,12 +1,6 @@
 import { z } from "zod";
 import type { Question } from "@/types/questionnaire";
 
-export const consentSchema = z.object({
-  accepted: z.literal(true, {
-    error: "You must accept to continue",
-  }),
-});
-
 export const sessionSchema = z.object({
   sessionId: z.string().min(8).max(64),
   questionnaireId: z.string().min(1),

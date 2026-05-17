@@ -63,9 +63,3 @@ export type SurveyStep =
       questions: Question[];
       questionStartIndex: number;
     };
-
-export interface AnswerValue {
-  questionId: string;
-  sectionId: string;
-  value: string;
-}

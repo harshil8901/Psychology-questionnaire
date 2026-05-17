@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     answersByResponse.set(a.response_id, list);
   });
 
-  const { headers, rows: exportRows } = buildExportRows(rows, answersByResponse);
+  const { headers, rows: exportRows } = await buildExportRows(rows, answersByResponse);
 
   if (format === "xlsx") {
     const buffer = toXLSXBuffer(headers, exportRows);

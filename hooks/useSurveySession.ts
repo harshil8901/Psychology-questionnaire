@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useSurveyStore } from "@/store/survey-store";
-import { DEFAULT_QUESTIONNAIRE_ID } from "@/data/questionnaires";
+import { DEFAULT_QUESTIONNAIRE_ID } from "@/lib/questionnaire";
 
 export function useSurveySession() {
   const store = useSurveyStore();
