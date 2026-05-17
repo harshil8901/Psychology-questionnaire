@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { answerSchema, sanitizeText } from "@/lib/validation";
 import { headers } from "next/headers";
@@ -28,6 +29,10 @@ export async function POST(
 
   const { sessionId, questionId, sectionId, value } = parsed.data;
   const clean = sanitizeText(value);
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ ok: true, offline: true });
+  }
 
   try {
     const supabase = createAdminClient();

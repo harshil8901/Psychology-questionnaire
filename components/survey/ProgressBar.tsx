@@ -16,7 +16,7 @@ export function ProgressBar({
   isSaving,
 }: ProgressBarProps) {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0B1020]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#020308]/90 backdrop-blur-xl">
       <motion.div
         className="h-1 bg-white/[0.06]"
         role="progressbar"

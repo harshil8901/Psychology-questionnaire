@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getAllQuestions } from "@/lib/questionnaire";
 import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
@@ -31,6 +32,14 @@ export async function POST(request: Request) {
 
   if (!tokenValid) {
     return NextResponse.json({ error: "Captcha verification failed" }, { status: 403 });
+  }
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({
+      responseId,
+      completedAt: new Date().toISOString(),
+      offline: true,
+    });
   }
 
   try {

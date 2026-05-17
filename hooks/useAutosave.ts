@@ -6,11 +6,12 @@ import { sanitizeText } from "@/lib/validation";
 
 export function useAutosave(preview = false) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { responseId, sessionId, setSaving, setLastSaved } = useSurveyStore();
+  const { responseId, sessionId, offlineMode, setSaving, setLastSaved } =
+    useSurveyStore();
 
   const saveAnswer = useCallback(
     async (questionId: string, sectionId: string, value: string) => {
-      if (preview || !responseId || !sessionId) return;
+      if (preview || offlineMode || !responseId || !sessionId) return;
 
       const clean = sanitizeText(value);
 
@@ -37,7 +38,7 @@ export function useAutosave(preview = false) {
         }
       }, 400);
     },
-    [preview, responseId, sessionId, setSaving, setLastSaved]
+    [preview, offlineMode, responseId, sessionId, setSaving, setLastSaved]
   );
 
   const syncProgress = useCallback(
@@ -47,7 +48,7 @@ export function useAutosave(preview = false) {
       lastSectionId?: string;
       lastQuestionId?: string;
     }) => {
-      if (preview || !responseId || !sessionId) return;
+      if (preview || offlineMode || !responseId || !sessionId) return;
 
       await fetch(`/api/responses/${responseId}`, {
         method: "PATCH",
@@ -55,7 +56,7 @@ export function useAutosave(preview = false) {
         body: JSON.stringify({ sessionId, ...payload }),
       });
     },
-    [preview, responseId, sessionId]
+    [preview, offlineMode, responseId, sessionId]
   );
 
   return { saveAnswer, syncProgress };

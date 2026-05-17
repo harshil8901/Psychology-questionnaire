@@ -52,7 +52,7 @@ export function SingleChoice({ options, value, onChange, name }: SingleChoicePro
                 selected ? "border-cyan-400 bg-cyan-400" : "border-slate-500"
               )}
             >
-              {selected && <span className="h-2 w-2 rounded-full bg-[#0B1020]" />}
+              {selected && <span className="h-2 w-2 rounded-full bg-[#020308]" />}
             </span>
             <span className="text-sm font-medium">{option}</span>
           </motion.label>

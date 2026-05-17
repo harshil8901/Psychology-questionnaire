@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const geist = Geist({
-  variable: "--font-geist-sans",
+const sans = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Predictors of Flourishing at Workplace",
   description:
-    "Premium research questionnaire for psychology PhD study — corporate employees Delhi NCR",
+    "Confidential research study on workplace flourishing — corporate professionals, Delhi NCR",
 };
 
 export default function RootLayout({
@@ -19,8 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} dark h-full`}>
-      <body className="min-h-full bg-[#0B1020] font-sans antialiased">{children}</body>
+    <html
+      lang="en"
+      className={`${sans.variable} ${display.variable} dark h-full`}
+    >
+      <body className="min-h-full bg-[#020308] font-sans antialiased text-slate-100">
+        {children}
+      </body>
     </html>
   );
 }

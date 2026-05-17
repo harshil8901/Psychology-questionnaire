@@ -5,6 +5,15 @@ import { v4 as uuidv4 } from "uuid";
 import { useSurveyStore } from "@/store/survey-store";
 import { DEFAULT_QUESTIONNAIRE_ID } from "@/lib/questionnaire";
 
+type SessionResponse = {
+  responseId: string;
+  sessionId: string;
+  answers?: Record<string, string>;
+  currentStepIndex?: number;
+  consentAcceptedAt?: string | null;
+  offline?: boolean;
+};
+
 export function useSurveySession() {
   const store = useSurveyStore();
 
@@ -18,7 +27,11 @@ export function useSurveySession() {
     }
 
     if (store.responseId) {
-      return { sessionId, responseId: store.responseId };
+      return {
+        sessionId,
+        responseId: store.responseId,
+        offline: store.offlineMode,
+      };
     }
 
     const res = await fetch("/api/responses", {
@@ -30,36 +43,40 @@ export function useSurveySession() {
       }),
     });
 
-    if (!res.ok) throw new Error("Failed to create session");
-    const data = (await res.json()) as {
-      responseId: string;
-      sessionId: string;
-      answers?: Record<string, string>;
-      currentStepIndex?: number;
-      consentAcceptedAt?: string | null;
-    };
+    const data = (await res.json()) as SessionResponse & { error?: string };
 
-    store.setSession(data.sessionId, data.responseId);
+    if (!res.ok) {
+      console.warn("Session API error:", data.error ?? res.status);
+      store.setSession(sessionId, sessionId, true);
+      return { sessionId, responseId: sessionId, offline: true };
+    }
+
+    store.setSession(data.sessionId, data.responseId, Boolean(data.offline));
     if (data.answers) store.setAnswers(data.answers);
-    if (data.currentStepIndex != null)
-      store.setStepIndex(data.currentStepIndex);
+    if (data.currentStepIndex != null) store.setStepIndex(data.currentStepIndex);
     if (data.consentAcceptedAt) store.setConsent(data.consentAcceptedAt);
 
-    return { sessionId: data.sessionId, responseId: data.responseId };
+    return {
+      sessionId: data.sessionId,
+      responseId: data.responseId,
+      offline: data.offline,
+    };
   }, [store]);
 
   const acceptConsent = useCallback(async () => {
-    const { responseId, sessionId } = await ensureSession();
+    const { responseId, sessionId, offline } = await ensureSession();
     const timestamp = new Date().toISOString();
 
-    await fetch(`/api/responses/${responseId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId,
-        consentAcceptedAt: timestamp,
-      }),
-    });
+    if (!offline) {
+      await fetch(`/api/responses/${responseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          consentAcceptedAt: timestamp,
+        }),
+      });
+    }
 
     store.setConsent(timestamp);
     return timestamp;

@@ -34,40 +34,40 @@ export function WelcomeClient({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       {preview && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
+        <div className="mb-6 rounded-lg border border-amber-500/25 bg-amber-500/8 px-4 py-2 text-center text-sm text-amber-100/90">
           Preview mode — responses are not saved
         </div>
       )}
       <StaggerContainer className="mx-auto w-full max-w-2xl space-y-8">
         <StaggerItem className="text-center">
-          <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-cyan-400/90">
-            Psychology Research Study
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+            Workplace Wellbeing Research
           </p>
-          <h1 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          <h1 className="font-heading bg-gradient-to-br from-white via-slate-100 to-slate-400 bg-clip-text text-4xl font-semibold leading-tight text-transparent sm:text-5xl">
             {questionnaire.title}
           </h1>
-          <p className="mx-auto mt-4 max-w-lg text-lg text-slate-400">
-            A premium research experience for corporate professionals in Delhi NCR.
-            Your insights help advance workplace wellbeing science.
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-slate-400">
+            A refined, confidential study for corporate professionals in Delhi NCR.
+            Your reflections advance evidence on flourishing at work.
           </p>
         </StaggerItem>
 
         <StaggerItem>
           <GlassCard>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-4 text-center">
-                <Clock className="h-5 w-5 text-cyan-400" />
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 text-center">
+                <Clock className="h-5 w-5 text-slate-300" />
                 <span className="text-sm text-slate-300">
-                  ~{questionnaire.estimatedTime} minutes
+                  About {questionnaire.estimatedTime} min
                 </span>
               </div>
-              <div className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-4 text-center">
-                <Lock className="h-5 w-5 text-blue-400" />
-                <span className="text-sm text-slate-300">Confidential</span>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 text-center">
+                <Lock className="h-5 w-5 text-slate-300" />
+                <span className="text-sm text-slate-300">Fully confidential</span>
               </div>
-              <div className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-4 text-center">
-                <Sparkles className="h-5 w-5 text-purple-400" />
-                <span className="text-sm text-slate-300">Auto-saved progress</span>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 text-center">
+                <Sparkles className="h-5 w-5 text-slate-300" />
+                <span className="text-sm text-slate-300">Progress saved</span>
               </div>
             </div>
           </GlassCard>
@@ -76,16 +76,16 @@ export function WelcomeClient({
         <StaggerItem className="flex flex-col items-center gap-4">
           <motion.button
             type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
             onClick={() => (preview ? handleAccept() : setConsentOpen(true))}
-            className="w-full max-w-md rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-cyan-500/25"
+            className="w-full max-w-md rounded-xl border border-white/10 bg-gradient-to-r from-slate-100 via-slate-200 to-slate-300 px-8 py-4 text-lg font-semibold text-[#020308] shadow-lg shadow-black/30 transition-shadow hover:shadow-xl"
           >
-            {preview ? "Preview survey" : "Begin Survey"}
+            {preview ? "Preview survey" : "Begin study"}
           </motion.button>
           {!preview && (
             <p className="text-center text-xs text-slate-500">
-              Participation is voluntary. You may withdraw at any time.
+              Voluntary participation. You may stop at any time.
             </p>
           )}
         </StaggerItem>

@@ -12,10 +12,10 @@ export function PageTransition({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
       {children}
@@ -36,7 +36,7 @@ export function StaggerContainer({
       animate="visible"
       variants={{
         hidden: {},
-        visible: { transition: { staggerChildren: 0.08 } },
+        visible: { transition: { staggerChildren: 0.04 } },
       }}
       className={className}
     >
@@ -55,10 +55,10 @@ export function StaggerItem({
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 16 },
+        hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0 },
       }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
       {children}

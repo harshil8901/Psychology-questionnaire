@@ -170,7 +170,7 @@ const sections: SurveySection[] = [
     title: "Demographic Details",
     description: "Tell us a little about yourself. Your responses help us understand our sample.",
     icon: "user",
-    estimatedTime: 2,
+    estimatedTime: 1,
     themeGradient: "from-cyan-500 to-blue-500",
     questions: [
       {
@@ -266,7 +266,7 @@ const sections: SurveySection[] = [
     description:
       "Please answer based on your regular behaviour and awareness over the past month.",
     icon: "heart",
-    estimatedTime: 4,
+    estimatedTime: 3,
     themeGradient: "from-purple-500 to-cyan-500",
     questions: likertItems("health_behaviour", "hb", healthBehaviourStems),
   },
@@ -276,7 +276,7 @@ const sections: SurveySection[] = [
     description:
       "Think about your typical experiences at work over the past few weeks.",
     icon: "zap",
-    estimatedTime: 5,
+    estimatedTime: 3,
     themeGradient: "from-blue-500 to-indigo-500",
     questions: likertItems(
       "work_engagement",
@@ -291,7 +291,7 @@ const sections: SurveySection[] = [
     description:
       "Reflect on how you have been feeling in general, not only at work.",
     icon: "sparkles",
-    estimatedTime: 5,
+    estimatedTime: 3,
     themeGradient: "from-violet-500 to-purple-500",
     questions: likertItems(
       "psychological_wellbeing",
@@ -306,7 +306,7 @@ const sections: SurveySection[] = [
     description:
       "Consider your experiences with your organization, leadership, and colleagues.",
     icon: "building",
-    estimatedTime: 5,
+    estimatedTime: 3,
     themeGradient: "from-cyan-500 to-teal-500",
     questions: likertItems(
       "organizational_support",
@@ -321,7 +321,7 @@ const sections: SurveySection[] = [
     description:
       "These items explore your sense of thriving and fulfillment in your workplace.",
     icon: "sun",
-    estimatedTime: 6,
+    estimatedTime: 3,
     themeGradient: "from-amber-500 to-orange-500",
     questions: likertItems(
       "workplace_flourishing",
@@ -336,7 +336,7 @@ const sections: SurveySection[] = [
     description:
       "Indicate how often you experience the following in your work life.",
     icon: "activity",
-    estimatedTime: 4,
+    estimatedTime: 3,
     themeGradient: "from-rose-500 to-pink-500",
     questions: likertItems("job_stress", "js", jobStressStems),
   },
@@ -346,7 +346,7 @@ const sections: SurveySection[] = [
     description:
       "Think about how you respond to challenges and changes at work.",
     icon: "shield",
-    estimatedTime: 4,
+    estimatedTime: 3,
     themeGradient: "from-emerald-500 to-green-500",
     questions: likertItems("resilience", "rs", resilienceStems, LIKERT_AGREE),
   },
@@ -356,7 +356,7 @@ const sections: SurveySection[] = [
     description:
       "Consider your relationships and sense of connection with others at work.",
     icon: "users",
-    estimatedTime: 4,
+    estimatedTime: 3,
     themeGradient: "from-sky-500 to-blue-500",
     questions: likertItems(
       "social_connectedness",
@@ -371,7 +371,7 @@ const sections: SurveySection[] = [
     description:
       "Reflect on how well you balance professional and personal life.",
     icon: "scale",
-    estimatedTime: 4,
+    estimatedTime: 3,
     themeGradient: "from-indigo-500 to-violet-500",
     questions: likertItems(
       "work_life_balance",
@@ -396,7 +396,7 @@ const sections: SurveySection[] = [
     description:
       "Optional space to share anything else relevant to your workplace experience.",
     icon: "message",
-    estimatedTime: 2,
+    estimatedTime: 1,
     themeGradient: "from-slate-500 to-slate-600",
     questions: [
       {
@@ -426,7 +426,7 @@ const sections: SurveySection[] = [
 export const questionnaire: Questionnaire = {
   id: "flourishing-workplace",
   title: "Predictors of Flourishing at Workplace",
-  estimatedTime: 25,
+  estimatedTime: 17,
   version: "1.0",
   sections,
 };

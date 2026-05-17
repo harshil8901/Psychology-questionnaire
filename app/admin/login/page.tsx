@@ -2,16 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GlassCard } from "@/components/layout/GlassCard";
-import { AnimatedBackground } from "@/components/layout/AnimatedBackground";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import {
+  adminBtn,
+  adminCard,
+  adminEyebrow,
+  adminHeroDescription,
+  adminHeroTitle,
+  adminInput,
+} from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,65 +26,78 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
     });
+
     setLoading(false);
-    if (authError) {
-      setError(authError.message);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Invalid username or password");
       return;
     }
+
     router.push("/admin");
     router.refresh();
   };
 
   return (
-    <div className="relative min-h-screen text-white">
-      <AnimatedBackground />
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <GlassCard className="w-full max-w-md">
-          <h1 className="text-xl font-semibold text-white">Admin Login</h1>
-          <p className="mt-1 text-sm text-slate-400">Research dashboard access</p>
-          <form onSubmit={handleLogin} className="mt-6 space-y-4">
+    <AdminLayout>
+      <main className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className={cn(adminCard, "w-full max-w-sm p-6 sm:p-8")}>
+          <p className={adminEyebrow}>Research panel</p>
+          <h1 className={cn(adminHeroTitle, "mt-3 text-3xl sm:text-4xl")}>Sign in</h1>
+          <p className={adminHeroDescription}>
+            Questionnaires and response exports
+          </p>
+
+          <form onSubmit={handleLogin} className="mt-8 space-y-5">
             <div>
-              <Label htmlFor="email" className="text-slate-300">
-                Email
+              <Label htmlFor="username" className="text-xs text-slate-500">
+                Username
               </Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                className="mt-1 border-white/10 bg-white/5 text-white"
+                className={cn("mt-1.5 h-10", adminInput)}
               />
             </div>
             <div>
-              <Label htmlFor="password" className="text-slate-300">
+              <Label htmlFor="password" className="text-xs text-slate-500">
                 Password
               </Label>
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1 border-white/10 bg-white/5 text-white"
+                className={cn("mt-1.5 h-10", adminInput)}
               />
             </div>
-            {error && <p className="text-sm text-rose-400">{error}</p>}
-            <Button
+            {error && (
+              <p className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-sm text-rose-300">
+                {error}
+              </p>
+            )}
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500"
+              className={cn(adminBtn("primary"), "h-10 w-full")}
             >
               {loading ? "Signing in…" : "Sign in"}
-            </Button>
+            </button>
           </form>
-        </GlassCard>
+        </div>
       </main>
-    </div>
+    </AdminLayout>
   );
 }

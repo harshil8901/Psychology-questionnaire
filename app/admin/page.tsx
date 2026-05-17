@@ -1,23 +1,20 @@
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { QuestionnaireManager } from "@/components/admin/QuestionnaireManager";
-import { AnimatedBackground } from "@/components/layout/AnimatedBackground";
 
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/admin/login");
 
   return (
-    <div className="relative min-h-screen text-white">
-      <AnimatedBackground />
-      <div className="relative">
-        <AdminShell
-          title="Questionnaires"
-          description="Manage study instruments, activate versions, and preview flows"
-        >
-          <QuestionnaireManager />
-        </AdminShell>
-      </div>
-    </div>
+    <AdminLayout>
+      <AdminShell
+        title="Questionnaires"
+        description="Manage study instruments, activate versions, and preview flows"
+      >
+        <QuestionnaireManager />
+      </AdminShell>
+    </AdminLayout>
   );
 }

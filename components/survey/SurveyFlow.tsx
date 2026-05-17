@@ -39,6 +39,7 @@ export function SurveyFlow({
     sessionId,
     isSaving,
     consentAcceptedAt,
+    offlineMode,
   } = useSurveyStore();
   const { saveAnswer, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -166,6 +167,12 @@ export function SurveyFlow({
       {preview && (
         <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
           Preview mode — responses are not saved
+        </div>
+      )}
+      {!preview && offlineMode && (
+        <div className="bg-slate-500/10 px-4 py-2 text-center text-sm text-slate-400">
+          Local mode — progress saved in this browser only. Add Supabase keys in .env.local for
+          cloud save.
         </div>
       )}
       <ProgressBar

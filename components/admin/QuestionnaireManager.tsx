@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Upload, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Upload, Eye, FileJson } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+  adminBadge,
+  adminBtn,
+  adminCard,
+  adminCardHeader,
+  adminInput,
+  adminItemTitle,
+  adminSectionDescription,
+  adminSectionTitle,
+} from "@/components/admin/admin-ui";
 import type { QuestionnaireMeta } from "@/lib/questionnaire-loader";
 
 export function QuestionnaireManager() {
@@ -48,7 +56,7 @@ export function QuestionnaireManager() {
     }
     setMessage({
       type: "ok",
-      text: `Valid: ${data.summary.sections} sections, ${data.summary.questions} questions`,
+      text: `Valid — ${data.summary.sections} sections, ${data.summary.questions} questions`,
     });
   };
 
@@ -74,7 +82,7 @@ export function QuestionnaireManager() {
       setMessage({ type: "err", text: data.error ?? "Save failed" });
       return;
     }
-    setMessage({ type: "ok", text: activate ? "Saved and activated" : "Saved" });
+    setMessage({ type: "ok", text: activate ? "Saved and activated" : "Saved as draft" });
     load();
   };
 
@@ -100,137 +108,151 @@ export function QuestionnaireManager() {
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="border-white/[0.08] bg-white/[0.04]">
-        <CardHeader>
-          <CardTitle className="text-white">Active questionnaires</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <section className={adminCard}>
+        <div className={adminCardHeader}>
+          <h2 className={adminSectionTitle}>Questionnaires</h2>
+          <p className={adminSectionDescription}>
+            Activate a version for participants or preview before publishing
+          </p>
+        </div>
+        <div className="p-5">
           {loading ? (
-            <p className="text-slate-400">Loading…</p>
+            <p className="text-sm text-slate-500">Loading…</p>
+          ) : list.length === 0 ? (
+            <p className="text-sm text-slate-500">No questionnaires found.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {list.map((q) => (
                 <li
                   key={q.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/[0.05] bg-white/[0.02] px-4 py-3.5"
                 >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{q.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={adminItemTitle}>{q.title}</span>
                       {q.isActive && (
-                        <Badge className="bg-cyan-500/20 text-cyan-300">Active</Badge>
+                        <span className={adminBadge("active")}>Active</span>
                       )}
-                      <Badge variant="secondary" className="bg-white/5 text-slate-400">
-                        {q.source}
-                      </Badge>
+                      <span className={adminBadge("default")}>{q.source}</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      {q.id} · v{q.version} · {q.sectionCount} sections · {q.questionCount}{" "}
-                      questions · ~{q.estimatedTime} min
+                      {q.id} · v{q.version} · {q.sectionCount} sections ·{" "}
+                      {q.questionCount} questions · ~{q.estimatedTime} min
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {!q.isActive && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-white/10"
+                      <button
+                        type="button"
+                        className={adminBtn("secondary")}
                         onClick={() => activate(q.id)}
                       >
-                        <Check className="mr-1 h-3 w-3" />
+                        <Check className="h-3.5 w-3.5" />
                         Activate
-                      </Button>
+                      </button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-white/10"
+                    <button
+                      type="button"
+                      className={adminBtn("ghost")}
                       onClick={() => loadForEdit(q.id)}
                     >
-                      {q.source === "file" ? "View JSON" : "Edit"}
-                    </Button>
+                      {q.source === "file" ? "View" : "Edit"}
+                    </button>
                     <a
                       href={`/welcome?q=${q.id}&preview=1`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-3 text-xs text-slate-300 hover:bg-white/5"
+                      className={adminBtn("ghost")}
                     >
-                      <Eye className="h-3 w-3" />
+                      <Eye className="h-3.5 w-3.5" />
                       Preview
                     </a>
                     {q.source === "database" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-rose-500/30 text-rose-400"
+                      <button
+                        type="button"
+                        className={adminBtn("danger")}
                         onClick={() => remove(q.id, q.source)}
                       >
                         Delete
-                      </Button>
+                      </button>
                     )}
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="border-white/[0.08] bg-white/[0.04]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Upload className="h-5 w-5 text-cyan-400" />
-            Upload or paste questionnaire JSON
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <section className={adminCard}>
+        <div className={cn(adminCardHeader, "flex items-start gap-3")}>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
+            <FileJson className="h-4 w-4 text-slate-400" />
+          </div>
+          <div>
+            <h2 className={adminSectionTitle}>Upload questionnaire</h2>
+            <p className={adminSectionDescription}>
+              Paste JSON that matches the schema — validate before saving
+            </p>
+          </div>
+        </div>
+        <div className="space-y-4 p-5">
           <Textarea
             value={json}
             onChange={(e) => setJson(e.target.value)}
-            placeholder='Paste questionnaire JSON matching the schema (id, title, version, estimatedTime, sections…)'
-            className="min-h-[280px] font-mono text-xs border-white/10 bg-black/20 text-slate-200"
+            placeholder='{ "id": "...", "title": "...", "sections": [...] }'
+            className={cn(
+              "min-h-[260px] font-mono text-xs leading-relaxed",
+              adminInput
+            )}
           />
           {message && (
             <p
-              className={
-                message.type === "ok" ? "text-sm text-emerald-400" : "text-sm text-rose-400"
-              }
+              className={cn(
+                "text-sm",
+                message.type === "ok" ? "text-emerald-400/90" : "text-rose-400/90"
+              )}
             >
               {message.text}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="border-white/10"
+            <button
+              type="button"
+              className={adminBtn("ghost")}
               onClick={validate}
               disabled={!json.trim()}
             >
               Validate
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-cyan-500 to-blue-500"
+            </button>
+            <button
+              type="button"
+              className={adminBtn("secondary")}
               onClick={() => save(false)}
               disabled={saving || !json.trim()}
             >
               Save draft
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-blue-500 to-purple-500"
+            </button>
+            <button
+              type="button"
+              className={adminBtn("primary")}
               onClick={() => save(true)}
               disabled={saving || !json.trim()}
             >
+              <Upload className="h-3.5 w-3.5" />
               Save & activate
-            </Button>
+            </button>
           </div>
-          <p className="text-xs text-slate-500">
-            Built-in questionnaires live in{" "}
-            <code className="text-slate-400">data/questionnaires/</code>. Upload custom configs
-            here without redeploying.
+          <p className="text-xs text-slate-600">
+            Built-in configs live in{" "}
+            <code className="rounded bg-white/[0.04] px-1 py-0.5 text-slate-400">
+              data/questionnaires/
+            </code>
+            . Upload here to change without redeploying.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

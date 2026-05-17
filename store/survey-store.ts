@@ -12,8 +12,9 @@ interface SurveyState {
   isHydrated: boolean;
   isSaving: boolean;
   lastSavedAt: string | null;
+  offlineMode: boolean;
 
-  setSession: (sessionId: string, responseId: string) => void;
+  setSession: (sessionId: string, responseId: string, offline?: boolean) => void;
   setConsent: (timestamp: string) => void;
   setStepIndex: (index: number) => void;
   setAnswer: (questionId: string, value: string) => void;
@@ -34,14 +35,15 @@ const initialState = {
   isHydrated: false,
   isSaving: false,
   lastSavedAt: null,
+  offlineMode: false,
 };
 
 export const useSurveyStore = create<SurveyState>()(
   persist(
     (set) => ({
       ...initialState,
-      setSession: (sessionId, responseId) =>
-        set({ sessionId, responseId }),
+      setSession: (sessionId, responseId, offline = false) =>
+        set({ sessionId, responseId, offlineMode: offline }),
       setConsent: (timestamp) => set({ consentAcceptedAt: timestamp }),
       setStepIndex: (index) => set({ currentStepIndex: index }),
       setAnswer: (questionId, value) =>
@@ -64,6 +66,7 @@ export const useSurveyStore = create<SurveyState>()(
         currentStepIndex: s.currentStepIndex,
         answers: s.answers,
         lastSavedAt: s.lastSavedAt,
+        offlineMode: s.offlineMode,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

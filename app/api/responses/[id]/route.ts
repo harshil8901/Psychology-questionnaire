@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { headers } from "next/headers";
@@ -31,6 +32,10 @@ export async function PATCH(
   }
 
   const { sessionId, ...updates } = parsed.data;
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ ok: true, offline: true });
+  }
 
   try {
     const supabase = createAdminClient();

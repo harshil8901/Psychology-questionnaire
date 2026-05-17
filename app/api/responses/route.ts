@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createOfflineSessionPayload } from "@/lib/offline-session";
 import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
 import { sessionSchema } from "@/lib/validation";
@@ -25,6 +27,12 @@ export async function POST(request: Request) {
   }
 
   const { sessionId, questionnaireId } = parsed.data;
+
+  if (!isSupabaseConfigured()) {
+    await loadQuestionnaire(questionnaireId);
+    return NextResponse.json(createOfflineSessionPayload(sessionId));
+  }
+
   const questionnaire = await loadQuestionnaire(questionnaireId);
 
   try {

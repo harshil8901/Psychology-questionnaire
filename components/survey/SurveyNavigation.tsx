@@ -25,7 +25,7 @@ export function SurveyNavigation({
     <motion.nav
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-[#0B1020]/95 px-4 py-4 backdrop-blur-xl safe-area-pb"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-[#020308]/95 px-4 py-4 backdrop-blur-xl safe-area-pb"
     >
       <motion.div className="mx-auto flex max-w-2xl gap-3">
         {canGoBack && onBack ? (
