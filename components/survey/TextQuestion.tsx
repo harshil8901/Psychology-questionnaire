@@ -60,7 +60,7 @@ export function TextQuestion({
       placeholder={placeholder}
       maxLength={numericOnly ? 3 : undefined}
       aria-describedby={numericOnly ? `${id}-hint` : undefined}
-      className={cn(className, "h-12")}
+      className={cn(className, "h-12 min-h-[48px] text-base")}
     />
   );
 }

@@ -163,3 +163,20 @@
 .safe-area-pb {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Horizontal likert scroll on narrow screens */
+.survey-likert-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.survey-likert-scroll::-webkit-scrollbar {
+  display: none;
+}

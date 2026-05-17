@@ -6,9 +6,9 @@ export default function SurveyLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen text-white">
+    <div className="relative min-h-dvh overflow-x-hidden text-white">
       <AnimatedBackground />
-      {children}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }

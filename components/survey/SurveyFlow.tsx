@@ -237,7 +237,12 @@ export function SurveyFlow({
     : undefined;
 
   return (
-    <motion.div className={cn("min-h-screen", isQuestionStep ? "pb-32 sm:pb-28" : "pb-8")}>
+    <motion.div
+      className={cn(
+        "min-h-dvh",
+        isQuestionStep && "pb-[max(7.5rem,calc(5.5rem+env(safe-area-inset-bottom)))]"
+      )}
+    >
       {preview && (
         <div className="bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
           Preview mode — responses are not saved
