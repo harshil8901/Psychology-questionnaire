@@ -28,10 +28,8 @@ export function buildSurveySteps(
     });
 
     const sorted = [...section.questions].sort((a, b) => a.order - b.order);
-    // One question per screen for demographics (text + choices) — easier on mobile
-    const perScreen = section.id === "demographics" ? 1 : questionsPerScreen;
-    for (let i = 0; i < sorted.length; i += perScreen) {
-      const chunk = sorted.slice(i, i + perScreen);
+    for (let i = 0; i < sorted.length; i += questionsPerScreen) {
+      const chunk = sorted.slice(i, i + questionsPerScreen);
       steps.push({
         kind: "questions",
         sectionId: section.id,
@@ -88,6 +86,17 @@ export function getVisibleStepQuestions(
 ): Question[] {
   if (step.kind === "section_intro") return [];
   return step.questions.filter((q) => isQuestionVisible(q, answers));
+}
+
+/** Delay before auto-advance (ms) — longer when the page has text fields */
+export function getStepAutoAdvanceDelay(step: SurveyStep): number {
+  if (step.kind !== "questions") return 0;
+  const types = step.questions.map((q) => q.type);
+  const hasText = types.some((t) => t === "text" || t === "textarea");
+  const allChoice = types.every((t) => t === "likert" || t === "single_choice");
+  if (allChoice) return 380;
+  if (hasText) return 750;
+  return 500;
 }
 
 /** True when every visible question on the step has a valid answer */

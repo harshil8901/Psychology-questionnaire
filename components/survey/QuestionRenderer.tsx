@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { motion } from "framer-motion";
 import type { Question } from "@/types/questionnaire";
 import { LikertScale } from "./LikertScale";
 import { SingleChoice } from "./SingleChoice";
@@ -14,6 +13,8 @@ interface QuestionRendererProps {
   onBlur?: () => void;
   onContinue?: () => void;
   error?: string;
+  index?: number;
+  total?: number;
 }
 
 function QuestionRendererComponent({
@@ -23,18 +24,21 @@ function QuestionRendererComponent({
   onBlur,
   onContinue,
   error,
+  index,
+  total,
 }: QuestionRendererProps) {
   return (
-    <motion.fieldset
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
+    <fieldset className="space-y-4">
       <legend className="sr-only">{question.question}</legend>
-      <motion.div>
+      <div>
+        {index != null && total != null && (
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+            Question {index} of {total}
+          </p>
+        )}
         <label
           htmlFor={question.id}
-          className="block text-lg font-medium leading-snug text-white sm:text-xl lg:text-2xl"
+          className="block text-lg font-medium leading-snug text-white sm:text-xl"
         >
           {question.question}
           {question.required && (
@@ -44,9 +48,9 @@ function QuestionRendererComponent({
           )}
         </label>
         {question.description && (
-          <p className="mt-2 text-sm text-slate-400">{question.description}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">{question.description}</p>
         )}
-      </motion.div>
+      </div>
       <div>
         {question.type === "likert" && (
           <LikertScale
@@ -89,7 +93,7 @@ function QuestionRendererComponent({
           {error}
         </p>
       )}
-    </motion.fieldset>
+    </fieldset>
   );
 }
 

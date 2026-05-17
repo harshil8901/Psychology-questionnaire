@@ -15,14 +15,14 @@ import {
   buildSurveySteps,
   calculateProgress,
   getSectionById,
+  getStepAutoAdvanceDelay,
+  getVisibleStepQuestions,
   isQuestionVisible,
   isStepComplete,
 } from "@/lib/questionnaire";
 import { cn } from "@/lib/utils";
 import { validateAnswerForQuestion } from "@/lib/validation";
 import type { Question, Questionnaire, SurveyStep } from "@/types/questionnaire";
-
-const AUTO_ADVANCE_MS = 450;
 
 export function SurveyFlow({
   questionnaire,
@@ -48,6 +48,7 @@ export function SurveyFlow({
   const { savePageAnswers, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advancingRef = useRef(false);
 
@@ -148,34 +149,45 @@ export function SurveyFlow({
 
   const goNext = useCallback(async () => {
     if (advancingRef.current) return;
-    if (!validateCurrentStep()) return;
+    advancingRef.current = true;
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
 
-    const isLast = currentStepIndex >= steps.length - 1;
-
-    if (isLast) {
-      if (preview) {
-        router.push("/welcome");
-        return;
-      }
-      if (currentStep?.kind !== "section_intro") {
-        await flushCurrentPage();
-      }
-      await handleSubmit();
+    if (!validateCurrentStep()) {
+      advancingRef.current = false;
       return;
     }
 
-    if (currentStep?.kind !== "section_intro") {
-      await flushCurrentPage();
-    }
+    const isLast = currentStepIndex >= steps.length - 1;
 
-    const nextIndex = currentStepIndex + 1;
-    setStepIndex(nextIndex);
-    await syncProgress({
-      currentStepIndex: nextIndex,
-      progressPercentage: calculateProgress(questionnaire, answers, nextIndex, steps)
-        .percentage,
-      lastSectionId: currentStep?.sectionId,
-    });
+    try {
+      if (isLast) {
+        if (preview) {
+          router.push("/welcome");
+          return;
+        }
+        if (currentStep?.kind !== "section_intro") {
+          await flushCurrentPage();
+        }
+        await handleSubmit();
+        return;
+      }
+
+      if (currentStep?.kind !== "section_intro") {
+        await flushCurrentPage();
+      }
+
+      const nextIndex = currentStepIndex + 1;
+      setStepIndex(nextIndex);
+      await syncProgress({
+        currentStepIndex: nextIndex,
+        progressPercentage: calculateProgress(questionnaire, answers, nextIndex, steps)
+          .percentage,
+        lastSectionId: currentStep?.sectionId,
+      });
+    } finally {
+      advancingRef.current = false;
+      setAutoAdvancing(false);
+    }
   }, [
     validateCurrentStep,
     currentStepIndex,
@@ -196,15 +208,17 @@ export function SurveyFlow({
       if (!currentStep || currentStep.kind !== "questions") return;
       if (currentStepIndex >= steps.length - 1) return;
       if (advancingRef.current) return;
-      if (!isStepComplete(currentStep, answerMap, validateAnswerForQuestion)) return;
+      if (!isStepComplete(currentStep, answerMap, validateAnswerForQuestion)) {
+        setAutoAdvancing(false);
+        return;
+      }
 
+      const delay = getStepAutoAdvanceDelay(currentStep);
       if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+      setAutoAdvancing(true);
       autoAdvanceTimer.current = setTimeout(() => {
-        advancingRef.current = true;
-        void goNext().finally(() => {
-          advancingRef.current = false;
-        });
-      }, AUTO_ADVANCE_MS);
+        void goNext();
+      }, delay);
     },
     [currentStep, currentStepIndex, steps.length, goNext]
   );
@@ -232,6 +246,7 @@ export function SurveyFlow({
   const goBack = useCallback(async () => {
     if (currentStepIndex <= 0) return;
     if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    setAutoAdvancing(false);
 
     if (currentStep?.kind !== "section_intro") {
       await flushCurrentPage();
@@ -244,6 +259,25 @@ export function SurveyFlow({
 
   const isLastStep = currentStepIndex >= steps.length - 1;
   const isQuestionStep = currentStep.kind === "questions";
+
+  const visibleOnPage = isQuestionStep
+    ? getVisibleStepQuestions(currentStep, answers)
+    : [];
+
+  const pageHint = useMemo(() => {
+    if (!isQuestionStep || isLastStep) return undefined;
+    const count = visibleOnPage.length;
+    if (count >= 2) {
+      const hasText = visibleOnPage.some(
+        (q) => q.type === "text" || q.type === "textarea"
+      );
+      if (hasText) {
+        return "Answer both questions — the next page opens automatically when complete. Use Continue if needed.";
+      }
+      return "Select both answers — the next page opens automatically. Use Continue if needed.";
+    }
+    return "The next page opens automatically when you answer. Use Continue if needed.";
+  }, [isQuestionStep, isLastStep, visibleOnPage]);
 
   return (
     <motion.div className={cn("min-h-screen", isQuestionStep ? "pb-36 sm:pb-32" : "pb-8")}>
@@ -263,6 +297,7 @@ export function SurveyFlow({
         sectionLabel={sectionLabel}
         minutesLeft={progress.minutesLeft}
         isSaving={preview ? false : isSaving}
+        autoAdvancing={autoAdvancing}
       />
 
       <AnimatePresence mode="wait">
@@ -278,31 +313,59 @@ export function SurveyFlow({
           </PageTransition>
         ) : (
           <PageTransition key={`q-${currentStepIndex}`}>
-            <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-8">
-              <GlassCard className="space-y-8 p-5 sm:space-y-10 sm:p-8">
-                {currentStep.questions.map((q) =>
-                  isQuestionVisible(q, answers) ? (
-                    <QuestionRenderer
-                      key={q.id}
-                      question={q}
-                      value={answers[q.id]}
-                      onChange={(v) => handleAnswerChange(q, v)}
-                      onBlur={
-                        q.type === "text" || q.type === "textarea"
-                          ? handleAnswerBlur
-                          : undefined
-                      }
-                      onContinue={goNext}
-                      error={errors[q.id]}
-                    />
-                  ) : null
-                )}
+            <motion.div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7 lg:max-w-3xl">
+              {visibleOnPage.length > 1 && (
+                <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-slate-600">
+                  {visibleOnPage.length} questions on this page
+                </p>
+              )}
+              <GlassCard className="overflow-hidden p-0">
+                <motion.div className="divide-y divide-white/[0.06]">
+                  {(() => {
+                    let visibleIndex = 0;
+                    return currentStep.questions.map((q) => {
+                      if (!isQuestionVisible(q, answers)) return null;
+                      visibleIndex += 1;
+                      const qIndex = visibleIndex;
+                      return (
+                        <motion.div
+                          key={q.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: (qIndex - 1) * 0.06, duration: 0.3 }}
+                          className="p-5 sm:p-7 lg:p-8"
+                        >
+                          <QuestionRenderer
+                            question={q}
+                            value={answers[q.id]}
+                            onChange={(v) => handleAnswerChange(q, v)}
+                            onBlur={
+                              q.type === "text" || q.type === "textarea"
+                                ? handleAnswerBlur
+                                : undefined
+                            }
+                            onContinue={goNext}
+                            error={errors[q.id]}
+                            index={
+                              visibleOnPage.length > 1 ? qIndex : undefined
+                            }
+                            total={
+                              visibleOnPage.length > 1
+                                ? visibleOnPage.length
+                                : undefined
+                            }
+                          />
+                        </motion.div>
+                      );
+                    });
+                  })()}
+                </motion.div>
               </GlassCard>
 
               {errors._form && (
                 <p className="mt-4 text-center text-sm text-rose-400">{errors._form}</p>
               )}
-            </div>
+            </motion.div>
           </PageTransition>
         )}
       </AnimatePresence>
@@ -312,11 +375,17 @@ export function SurveyFlow({
           canGoBack={currentStepIndex > 0}
           onBack={goBack}
           onContinue={goNext}
+          variant={isLastStep ? "submit" : "continue"}
           continueLabel={
             isLastStep ? (preview ? "End preview" : "Submit Survey") : "Continue"
           }
-          continueDisabled={!preview && (isLastStep ? submitting : false)}
-          isLoading={(isLastStep && submitting) || isSaving}
+          pageHint={
+            isLastStep
+              ? "Review your answers, then submit when ready."
+              : pageHint
+          }
+          continueDisabled={!preview && isLastStep && submitting}
+          isLoading={isLastStep && submitting}
         />
       )}
     </motion.div>
