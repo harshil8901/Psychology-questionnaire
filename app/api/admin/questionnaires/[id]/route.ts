@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
-import { getFileQuestionnaire, serializeQuestionnaire } from "@/lib/questionnaire-loader";
+import {
+  getFileQuestionnaire,
+  getHiddenQuestionnaireIds,
+  removeQuestionnaire,
+  serializeQuestionnaire,
+} from "@/lib/questionnaire-loader";
 
 export async function GET(
   _request: Request,
@@ -12,6 +17,11 @@ export async function GET(
   }
 
   const { id } = await params;
+  const hidden = await getHiddenQuestionnaireIds();
+  if (hidden.has(id)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const file = getFileQuestionnaire(id);
 
   if (file) {
@@ -58,18 +68,12 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  if (getFileQuestionnaire(id)) {
-    return NextResponse.json(
-      { error: "Built-in questionnaires cannot be deleted. Edit the file in the repo." },
-      { status: 400 }
-    );
-  }
 
-  const supabase = createAdminClient();
-  const { error } = await supabase.from("questionnaire_configs").delete().eq("id", id);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    await removeQuestionnaire(id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Delete failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }

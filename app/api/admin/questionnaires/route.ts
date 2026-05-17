@@ -58,6 +58,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  await supabase.from("questionnaire_hidden").delete().eq("id", config.id);
+
   return NextResponse.json({
     ok: true,
     id: config.id,

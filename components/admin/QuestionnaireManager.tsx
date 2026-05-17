@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Upload, Eye, FileJson } from "lucide-react";
+import { Check, Upload, Eye, FileJson, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ export function QuestionnaireManager() {
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -100,11 +101,48 @@ export function QuestionnaireManager() {
     if (res.ok) setJson(data.json ?? JSON.stringify(data.config, null, 2));
   };
 
-  const remove = async (id: string, source: string) => {
-    if (source === "file") return;
-    if (!confirm("Delete this questionnaire config?")) return;
-    await fetch(`/api/admin/questionnaires/${id}`, { method: "DELETE" });
-    load();
+  const remove = async (q: QuestionnaireMeta) => {
+    const builtInNote =
+      q.source === "file"
+        ? " This built-in questionnaire will be hidden from the admin list and participants. You can upload a new JSON version later to use it again."
+        : "";
+    const activeNote = q.isActive
+      ? " It is currently active — another questionnaire will be used for new participants if one is available."
+      : "";
+    if (
+      !window.confirm(
+        `Delete "${q.title}"?${activeNote}${builtInNote} This cannot be undone from the dashboard.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(q.id);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/admin/questionnaires/${q.id}`, {
+        method: "DELETE",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Delete failed");
+      }
+      setMessage({ type: "ok", text: `"${q.title}" removed` });
+      if (json.trim()) {
+        try {
+          const parsed = JSON.parse(json) as { id?: string };
+          if (parsed.id === q.id) setJson("");
+        } catch {
+          // ignore invalid editor JSON
+        }
+      }
+      await load();
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "Delete failed";
+      setMessage({ type: "err", text });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -168,15 +206,16 @@ export function QuestionnaireManager() {
                       <Eye className="h-3.5 w-3.5" />
                       Preview
                     </a>
-                    {q.source === "database" && (
-                      <button
-                        type="button"
-                        className={adminBtn("danger")}
-                        onClick={() => remove(q.id, q.source)}
-                      >
-                        Delete
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className={adminBtn("danger")}
+                      disabled={deletingId === q.id}
+                      onClick={() => remove(q)}
+                      aria-label={`Delete ${q.title}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {deletingId === q.id ? "Deleting…" : "Delete"}
+                    </button>
                   </div>
                 </li>
               ))}

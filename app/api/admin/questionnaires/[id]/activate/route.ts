@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
-import { getFileQuestionnaire } from "@/lib/questionnaire-loader";
+import {
+  getFileQuestionnaire,
+  getHiddenQuestionnaireIds,
+} from "@/lib/questionnaire-loader";
 
 export async function POST(
   _request: Request,
@@ -12,6 +15,14 @@ export async function POST(
   }
 
   const { id } = await params;
+  const hidden = await getHiddenQuestionnaireIds();
+  if (hidden.has(id)) {
+    return NextResponse.json(
+      { error: "This questionnaire was removed. Upload it again to reactivate." },
+      { status: 400 }
+    );
+  }
+
   const supabase = createAdminClient();
 
   await supabase
