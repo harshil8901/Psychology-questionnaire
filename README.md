@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Predictors of Flourishing at Workplace
 
-## Getting Started
+Premium psychology research questionnaire platform built with Next.js, Supabase, and a JSON-driven survey engine.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Multi-step survey (1–2 questions per screen)
+- Glassmorphism dark UI with Framer Motion
+- Auto-save to Supabase + localStorage resume
+- Consent modal flow (separate from questionnaire config)
+- Admin dashboard with Recharts analytics
+- CSV / XLSX export via SheetJS
+
+## Setup
+
+1. Copy `.env.example` to `.env.local` and add Supabase credentials.
+2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql` in your Supabase project.
+3. Create an admin user in Supabase Auth, then insert into `admin_users`:
+
+```sql
+insert into admin_users (id, email)
+values ('your-auth-user-uuid', 'admin@example.com');
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Install and run:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Questionnaire configuration
 
-## Learn More
+Edit **`data/questionnaires/flourishing-workplace.ts`** to add, remove, or reorder questions and sections. The UI reads this file dynamically — no component changes required.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to [Vercel](https://vercel.com) and set environment variables in the project settings.
