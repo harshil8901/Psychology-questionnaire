@@ -9,31 +9,21 @@ interface LikertScaleProps {
   onChange: (value: string) => void;
   name: string;
   disabled?: boolean;
-  compact?: boolean;
 }
 
+/** Compact horizontal scale for survey sections (after demographics) */
 export function LikertScale({
   options,
   value,
   onChange,
   name,
   disabled,
-  compact = false,
 }: LikertScaleProps) {
-  const longLabels = options.some((o) => o.length > 10);
-
   return (
     <motion.div
       role="radiogroup"
-      aria-label="Likert scale"
-      className={cn(
-        "grid w-full gap-2",
-        longLabels
-          ? "grid-cols-1 lg:flex lg:flex-wrap lg:gap-2"
-          : compact
-            ? "grid-cols-2 sm:flex sm:flex-wrap"
-            : "grid-cols-2 md:flex md:flex-wrap"
-      )}
+      aria-label="Response scale"
+      className="grid w-full grid-cols-5 gap-1 sm:gap-1.5"
       initial="hidden"
       animate="visible"
       variants={{
@@ -48,19 +38,13 @@ export function LikertScale({
           <motion.label
             key={option}
             htmlFor={id}
-            variants={{
-              hidden: { opacity: 0, y: 4 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            whileTap={{ scale: disabled ? 1 : 0.98 }}
+            variants={{ hidden: { opacity: 0, y: 4 }, visible: { opacity: 1, y: 0 } }}
+            whileTap={{ scale: disabled ? 1 : 0.97 }}
             className={cn(
-              "relative flex w-full cursor-pointer touch-manipulation items-center justify-center rounded-lg border px-3 py-3 text-center text-sm font-medium leading-snug transition-colors",
-              longLabels && "lg:min-h-[44px] lg:min-w-[7.5rem] lg:flex-1 lg:py-2.5",
-              !longLabels && compact && "min-h-[44px] py-2.5 text-xs sm:text-sm",
-              !longLabels && !compact && "min-h-[48px]",
+              "relative flex min-h-[3.5rem] cursor-pointer touch-manipulation flex-col items-center justify-center rounded-lg border px-0.5 py-1.5 text-center transition-colors sm:min-h-10 sm:px-1 sm:py-2",
               selected
-                ? "border-white/25 bg-white/[0.12] text-white"
-                : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06]",
+                ? "border-white/30 bg-white/[0.12] text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+                : "border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/15 hover:bg-white/[0.05]",
               disabled && "pointer-events-none opacity-60"
             )}
           >
@@ -74,10 +58,9 @@ export function LikertScale({
               disabled={disabled}
               className="sr-only"
             />
-            <span>{option}</span>
-            {selected && (
-              <span className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/30" />
-            )}
+            <span className="block w-full px-0.5 text-[10px] font-medium leading-[1.15] sm:text-[11px] md:text-xs">
+              {option}
+            </span>
           </motion.label>
         );
       })}

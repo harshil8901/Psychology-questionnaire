@@ -8,7 +8,6 @@ interface SingleChoiceProps {
   value?: string;
   onChange: (value: string) => void;
   name: string;
-  compact?: boolean;
 }
 
 export function SingleChoice({
@@ -16,7 +15,6 @@ export function SingleChoice({
   value,
   onChange,
   name,
-  compact = false,
 }: SingleChoiceProps) {
   return (
     <motion.div
@@ -39,7 +37,6 @@ export function SingleChoice({
             variants={{ hidden: { opacity: 0, x: -8 }, visible: { opacity: 1, x: 0 } }}
             className={cn(
               "flex min-h-[52px] cursor-pointer touch-manipulation items-center gap-3 rounded-xl border px-4 py-3 transition-all active:scale-[0.99]",
-              compact && "min-h-[48px] py-2.5",
               selected
                 ? "border-white/25 bg-white/[0.1] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]"

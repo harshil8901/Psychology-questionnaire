@@ -3,15 +3,18 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Question } from "@/types/questionnaire";
+import { LikertScale } from "./LikertScale";
 import { SingleChoice } from "./SingleChoice";
 import { TextQuestion } from "./TextQuestion";
+
+export type QuestionLayout = "demographic" | "survey";
 
 interface QuestionRendererProps {
   question: Question;
   value?: string;
   onChange: (value: string) => void;
   error?: string;
-  compact?: boolean;
+  layout?: QuestionLayout;
 }
 
 function QuestionRendererComponent({
@@ -19,17 +22,19 @@ function QuestionRendererComponent({
   value,
   onChange,
   error,
-  compact = false,
+  layout = "survey",
 }: QuestionRendererProps) {
+  const isDemographic = layout === "demographic";
+
   return (
-    <fieldset className={cn("space-y-3", compact && "space-y-2.5")}>
+    <fieldset className={cn("space-y-3", !isDemographic && "space-y-2.5")}>
       <legend className="sr-only">{question.question}</legend>
       <div>
         <label
           htmlFor={question.id}
           className={cn(
             "block font-medium leading-snug text-white",
-            compact ? "text-base" : "text-lg sm:text-xl"
+            isDemographic ? "text-lg sm:text-xl" : "text-[15px] sm:text-base"
           )}
         >
           {question.question}
@@ -40,19 +45,26 @@ function QuestionRendererComponent({
           )}
         </label>
         {question.description && (
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+          <p className="mt-1 text-sm leading-relaxed text-slate-400">
             {question.description}
           </p>
         )}
       </div>
       <div>
-        {(question.type === "likert" || question.type === "single_choice") && (
-          <SingleChoice
+        {question.type === "likert" && (
+          <LikertScale
             name={question.id}
-            options={question.type === "likert" ? question.scale : question.options}
+            options={question.scale}
             value={value}
             onChange={onChange}
-            compact={compact}
+          />
+        )}
+        {question.type === "single_choice" && (
+          <SingleChoice
+            name={question.id}
+            options={question.options}
+            value={value}
+            onChange={onChange}
           />
         )}
         {(question.type === "text" || question.type === "textarea") && (

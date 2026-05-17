@@ -228,7 +228,8 @@ export function SurveyFlow({
     ? getVisibleStepQuestions(currentStep, answers)
     : [];
 
-  const compactLayout = visibleOnPage.length >= 3;
+  const isDemographicsSection =
+    isQuestionStep && currentStep.sectionId === "demographics";
 
   const pageHint = isQuestionStep
     ? isLastStep
@@ -285,8 +286,8 @@ export function SurveyFlow({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04, duration: 0.25 }}
                         className={cn(
-                          "px-4 py-5 sm:px-8 sm:py-6",
-                          compactLayout && "sm:py-5"
+                          "px-4 py-4 sm:px-7",
+                          isDemographicsSection ? "py-5 sm:py-6" : "py-4 sm:py-5"
                         )}
                       >
                         <QuestionRenderer
@@ -294,7 +295,7 @@ export function SurveyFlow({
                           value={answers[q.id]}
                           onChange={(v) => handleAnswerChange(q.id, v)}
                           error={errors[q.id]}
-                          compact={compactLayout}
+                          layout={isDemographicsSection ? "demographic" : "survey"}
                         />
                       </motion.div>
                     );
