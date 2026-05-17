@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
 import {
+  countResponsesForQuestionnaire,
   getFileQuestionnaire,
   getHiddenQuestionnaireIds,
   removeQuestionnaire,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/questionnaire-loader";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await isAdmin())) {
@@ -17,6 +18,17 @@ export async function GET(
   }
 
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("impact") === "1") {
+    try {
+      const responseCount = await countResponsesForQuestionnaire(id);
+      return NextResponse.json({ id, responseCount });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not load impact";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   const hidden = await getHiddenQuestionnaireIds();
   if (hidden.has(id)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -70,8 +82,8 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    await removeQuestionnaire(id);
-    return NextResponse.json({ ok: true });
+    const { deletedResponses } = await removeQuestionnaire(id);
+    return NextResponse.json({ ok: true, deletedResponses });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Delete failed";
     return NextResponse.json({ error: message }, { status: 500 });

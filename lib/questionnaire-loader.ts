@@ -202,9 +202,31 @@ async function hideBuiltInQuestionnaire(id: string): Promise<void> {
   }
 }
 
-/** Remove a questionnaire from admin + participant use (hides built-ins; deletes DB rows). */
-export async function removeQuestionnaire(id: string): Promise<void> {
+export async function countResponsesForQuestionnaire(
+  questionnaireId: string
+): Promise<number> {
   const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("responses")
+    .select("*", { count: "exact", head: true })
+    .eq("questionnaire_id", questionnaireId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+/** Remove questionnaire, its config, and all participant responses for that id. */
+export async function removeQuestionnaire(
+  id: string
+): Promise<{ deletedResponses: number }> {
+  const supabase = createAdminClient();
+  const deletedResponses = await countResponsesForQuestionnaire(id);
+
+  const { error: responsesError } = await supabase
+    .from("responses")
+    .delete()
+    .eq("questionnaire_id", id);
+  if (responsesError) throw new Error(responsesError.message);
+
   const { error: configError } = await supabase
     .from("questionnaire_configs")
     .delete()
@@ -212,4 +234,6 @@ export async function removeQuestionnaire(id: string): Promise<void> {
   if (configError) throw new Error(configError.message);
 
   await hideBuiltInQuestionnaire(id);
+
+  return { deletedResponses };
 }

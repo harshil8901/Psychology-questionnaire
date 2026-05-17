@@ -105,33 +105,64 @@ export function QuestionnaireManager() {
   };
 
   const remove = async (q: QuestionnaireMeta) => {
+    setListMessage(null);
+
+    let responseCount = 0;
+    try {
+      const impactRes = await fetch(
+        `/api/admin/questionnaires/${encodeURIComponent(q.id)}?impact=1`
+      );
+      if (impactRes.ok) {
+        const impact = (await impactRes.json()) as { responseCount?: number };
+        responseCount = impact.responseCount ?? 0;
+      }
+    } catch {
+      // Continue with generic confirmation if impact lookup fails
+    }
+
     const builtInNote =
       q.source === "file"
-        ? " This built-in questionnaire will be hidden from the admin list and participants. You can upload a new JSON version later to use it again."
+        ? "\n\nThe built-in version will be hidden from this dashboard (you can upload it again later)."
         : "";
     const activeNote = q.isActive
-      ? " It is currently active — another questionnaire will be used for new participants if one is available."
+      ? "\n\nIt is currently active — another questionnaire will be used for new participants if available."
       : "";
+    const responsesNote =
+      responseCount === 0
+        ? "\n\nNo participant responses are linked to this questionnaire."
+        : responseCount === 1
+          ? "\n\n1 participant response will also be permanently deleted."
+          : `\n\n${responseCount} participant responses will also be permanently deleted.`;
+
     if (
       !window.confirm(
-        `Delete "${q.title}"?${activeNote}${builtInNote} This cannot be undone from the dashboard.`
+        `Delete "${q.title}"?${responsesNote}${activeNote}${builtInNote}\n\nThis cannot be undone.`
       )
     ) {
       return;
     }
 
     setDeletingId(q.id);
-    setListMessage(null);
     try {
       const res = await fetch(
         `/api/admin/questionnaires/${encodeURIComponent(q.id)}`,
         { method: "DELETE" }
       );
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; deletedResponses?: number };
       if (!res.ok) {
         throw new Error(data.error ?? "Delete failed");
       }
-      setListMessage({ type: "ok", text: `"${q.title}" removed` });
+      const deletedResponses = data.deletedResponses ?? responseCount;
+      const responsesRemoved =
+        deletedResponses === 0
+          ? ""
+          : deletedResponses === 1
+            ? " and 1 response deleted"
+            : ` and ${deletedResponses} responses deleted`;
+      setListMessage({
+        type: "ok",
+        text: `"${q.title}" removed${responsesRemoved}`,
+      });
       if (json.trim()) {
         try {
           const parsed = JSON.parse(json) as { id?: string };
