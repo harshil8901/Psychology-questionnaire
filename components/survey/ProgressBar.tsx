@@ -5,14 +5,12 @@ import { motion } from "framer-motion";
 interface ProgressBarProps {
   percentage: number;
   sectionLabel?: string;
-  minutesLeft?: number;
   isSaving?: boolean;
 }
 
 export function ProgressBar({
   percentage,
   sectionLabel,
-  minutesLeft,
   isSaving,
 }: ProgressBarProps) {
   return (
@@ -40,11 +38,8 @@ export function ProgressBar({
             </p>
           )}
           <p className="text-sm text-slate-400">
-            <span className="font-medium text-slate-200">{Math.round(percentage)}%</span>
-            {" complete"}
-            {minutesLeft != null && (
-              <span className="text-slate-500"> · ~{minutesLeft} min left</span>
-            )}
+            <span className="font-semibold text-white">{Math.round(percentage)}%</span>
+            <span className="text-slate-500"> complete</span>
           </p>
         </div>
         {isSaving && (

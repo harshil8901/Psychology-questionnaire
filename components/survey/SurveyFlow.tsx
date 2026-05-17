@@ -233,7 +233,7 @@ export function SurveyFlow({
   const pageHint = isQuestionStep
     ? isLastStep
       ? "Review your answers, then submit when ready."
-      : `Answer all ${visibleOnPage.length} question${visibleOnPage.length === 1 ? "" : "s"} on this page, then select Continue.`
+      : "Answer every question on this page, then select Continue."
     : undefined;
 
   return (
@@ -257,7 +257,6 @@ export function SurveyFlow({
       <ProgressBar
         percentage={progress.percentage}
         sectionLabel={sectionLabel}
-        minutesLeft={progress.minutesLeft}
         isSaving={preview ? false : isSaving}
       />
 
@@ -274,53 +273,32 @@ export function SurveyFlow({
           </PageTransition>
         ) : (
           <PageTransition key={`q-${currentStepIndex}`}>
-            <motion.div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-8 lg:max-w-4xl xl:max-w-5xl">
-              <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Page {currentStepIndex + 1} of {steps.length}
-                  </p>
-                  <h2 className="font-heading mt-1 text-lg font-medium text-white sm:text-xl">
-                    {sectionLabel}
-                  </h2>
-                </div>
-                <p className="text-sm text-slate-500">
-                  {visibleOnPage.length} question{visibleOnPage.length === 1 ? "" : "s"} below
-                </p>
-              </div>
-
+            <motion.div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-8 sm:py-8 lg:max-w-4xl xl:max-w-5xl">
               <GlassCard className="overflow-hidden p-0">
                 <motion.div className="divide-y divide-white/[0.06]">
-                  {(() => {
-                    let visibleIndex = 0;
-                    return currentStep.questions.map((q) => {
-                      if (!isQuestionVisible(q, answers)) return null;
-                      visibleIndex += 1;
-                      const qIndex = visibleIndex;
-                      return (
-                        <motion.div
-                          key={q.id}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: (qIndex - 1) * 0.04, duration: 0.25 }}
-                          className={cn(
-                            "px-5 py-5 sm:px-8 sm:py-6",
-                            compactLayout && "sm:py-5"
-                          )}
-                        >
-                          <QuestionRenderer
-                            question={q}
-                            value={answers[q.id]}
-                            onChange={(v) => handleAnswerChange(q.id, v)}
-                            error={errors[q.id]}
-                            index={visibleOnPage.length > 1 ? qIndex : undefined}
-                            total={visibleOnPage.length > 1 ? visibleOnPage.length : undefined}
-                            compact={compactLayout}
-                          />
-                        </motion.div>
-                      );
-                    });
-                  })()}
+                  {currentStep.questions.map((q, i) => {
+                    if (!isQuestionVisible(q, answers)) return null;
+                    return (
+                      <motion.div
+                        key={q.id}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04, duration: 0.25 }}
+                        className={cn(
+                          "px-4 py-5 sm:px-8 sm:py-6",
+                          compactLayout && "sm:py-5"
+                        )}
+                      >
+                        <QuestionRenderer
+                          question={q}
+                          value={answers[q.id]}
+                          onChange={(v) => handleAnswerChange(q.id, v)}
+                          error={errors[q.id]}
+                          compact={compactLayout}
+                        />
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               </GlassCard>
 

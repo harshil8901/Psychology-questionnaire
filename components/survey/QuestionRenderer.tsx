@@ -12,8 +12,6 @@ interface QuestionRendererProps {
   value?: string;
   onChange: (value: string) => void;
   error?: string;
-  index?: number;
-  total?: number;
   compact?: boolean;
 }
 
@@ -22,19 +20,12 @@ function QuestionRendererComponent({
   value,
   onChange,
   error,
-  index,
-  total,
   compact = false,
 }: QuestionRendererProps) {
   return (
     <fieldset className={cn("space-y-3", compact && "space-y-2.5")}>
       <legend className="sr-only">{question.question}</legend>
       <div>
-        {index != null && total != null && (
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-            Question {index} of {total}
-          </p>
-        )}
         <label
           htmlFor={question.id}
           className={cn(

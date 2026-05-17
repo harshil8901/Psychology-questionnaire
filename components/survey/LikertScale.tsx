@@ -27,18 +27,18 @@ export function LikertScale({
       role="radiogroup"
       aria-label="Likert scale"
       className={cn(
-        "gap-1.5",
-        longLabels && !compact
-          ? "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap"
+        "grid w-full gap-2",
+        longLabels
+          ? "grid-cols-1 lg:flex lg:flex-wrap lg:gap-2"
           : compact
-            ? "survey-likert-scroll flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible"
-            : "survey-likert-scroll flex gap-2 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible"
+            ? "grid-cols-2 sm:flex sm:flex-wrap"
+            : "grid-cols-2 md:flex md:flex-wrap"
       )}
       initial="hidden"
       animate="visible"
       variants={{
         hidden: {},
-        visible: { transition: { staggerChildren: 0.04 } },
+        visible: { transition: { staggerChildren: 0.03 } },
       }}
     >
       {options.map((option) => {
@@ -49,17 +49,15 @@ export function LikertScale({
             key={option}
             htmlFor={id}
             variants={{
-              hidden: { opacity: 0, y: 6 },
+              hidden: { opacity: 0, y: 4 },
               visible: { opacity: 1, y: 0 },
             }}
             whileTap={{ scale: disabled ? 1 : 0.98 }}
             className={cn(
-              "relative flex shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-lg border text-center font-medium transition-colors",
-              longLabels && !compact
-                ? "min-h-[48px] w-full px-3 py-3 text-sm sm:min-w-[8rem] sm:flex-1"
-                : compact
-                  ? "min-h-[44px] min-w-[4.25rem] max-w-[7rem] flex-1 px-2 py-2 text-xs sm:min-w-[5rem] sm:max-w-none sm:text-sm"
-                  : "min-h-[48px] min-w-[4.5rem] flex-1 px-2.5 py-2.5 text-sm sm:min-w-[5.5rem]",
+              "relative flex w-full cursor-pointer touch-manipulation items-center justify-center rounded-lg border px-3 py-3 text-center text-sm font-medium leading-snug transition-colors",
+              longLabels && "lg:min-h-[44px] lg:min-w-[7.5rem] lg:flex-1 lg:py-2.5",
+              !longLabels && compact && "min-h-[44px] py-2.5 text-xs sm:text-sm",
+              !longLabels && !compact && "min-h-[48px]",
               selected
                 ? "border-white/25 bg-white/[0.12] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06]",
@@ -76,7 +74,7 @@ export function LikertScale({
               disabled={disabled}
               className="sr-only"
             />
-            <span className="leading-tight">{option}</span>
+            <span>{option}</span>
             {selected && (
               <span className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/30" />
             )}
