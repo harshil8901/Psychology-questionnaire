@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Turnstile } from "@marsidev/react-turnstile";
 import { PageTransition } from "@/components/animations/PageTransition";
 import { GlassCard } from "@/components/layout/GlassCard";
 import { ProgressBar } from "./ProgressBar";
@@ -41,10 +40,8 @@ export function SurveyFlow({
     consentAcceptedAt,
     offlineMode,
   } = useSurveyStore();
-  const { saveAnswer, syncProgress } = useAutosave(preview);
+  const { savePageAnswers, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const currentStep: SurveyStep | undefined = steps[currentStepIndex];
@@ -68,17 +65,36 @@ export function SurveyFlow({
     }
   }, [consentAcceptedAt, preview, router]);
 
+  const getPageAnswers = useCallback(
+    (step: SurveyStep) => {
+      if (step.kind === "section_intro") return [];
+      return step.questions
+        .filter((q) => isQuestionVisible(q, answers))
+        .map((q) => ({
+          questionId: q.id,
+          sectionId: step.sectionId,
+          value: answers[q.id] ?? "",
+        }));
+    },
+    [answers]
+  );
+
+  const flushCurrentPage = useCallback(async () => {
+    if (!currentStep || currentStep.kind === "section_intro") return;
+    await savePageAnswers(getPageAnswers(currentStep));
+  }, [currentStep, getPageAnswers, savePageAnswers]);
+
   const handleAnswerChange = useCallback(
-    (question: Question, sectionId: string, value: string) => {
+    (question: Question, value: string) => {
       setAnswer(question.id, value);
       setErrors((e) => {
         const next = { ...e };
         delete next[question.id];
+        delete next._form;
         return next;
       });
-      saveAnswer(question.id, sectionId, value);
     },
-    [setAnswer, saveAnswer]
+    [setAnswer]
   );
 
   const validateCurrentStep = useCallback((): boolean => {
@@ -94,16 +110,49 @@ export function SurveyFlow({
     return Object.keys(newErrors).length === 0;
   }, [currentStep, answers]);
 
+  const handleSubmit = useCallback(async () => {
+    if (!responseId || !sessionId) return;
+    setSubmitting(true);
+    setErrors((e) => {
+      const next = { ...e };
+      delete next._form;
+      return next;
+    });
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          responseId,
+          sessionId,
+          honeypot: "",
+        }),
+      });
+      if (!res.ok) throw new Error("Submit failed");
+      const data = (await res.json()) as { responseId: string };
+      router.push(`/complete?id=${data.responseId}`);
+    } catch {
+      setErrors({ _form: "Submission failed. Please try again." });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [responseId, sessionId, router]);
+
   const goNext = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
     const isLast = currentStepIndex >= steps.length - 1;
+
+    if (currentStep?.kind !== "section_intro") {
+      await flushCurrentPage();
+    }
+
     if (isLast) {
       if (preview) {
         router.push("/welcome");
         return;
       }
-      setShowCaptcha(true);
+      await handleSubmit();
       return;
     }
 
@@ -119,44 +168,26 @@ export function SurveyFlow({
     validateCurrentStep,
     currentStepIndex,
     steps,
+    currentStep,
+    flushCurrentPage,
+    preview,
+    router,
+    handleSubmit,
     setStepIndex,
     syncProgress,
     questionnaire,
     answers,
-    currentStep,
-    preview,
-    router,
   ]);
 
-  const goBack = useCallback(() => {
-    if (currentStepIndex > 0) {
-      setStepIndex(currentStepIndex - 1);
-    }
-  }, [currentStepIndex, setStepIndex]);
+  const goBack = useCallback(async () => {
+    if (currentStepIndex <= 0) return;
 
-  const handleSubmit = useCallback(async () => {
-    if (!responseId || !sessionId) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          responseId,
-          sessionId,
-          turnstileToken: turnstileToken ?? undefined,
-          honeypot: "",
-        }),
-      });
-      if (!res.ok) throw new Error("Submit failed");
-      const data = (await res.json()) as { responseId: string };
-      router.push(`/complete?id=${data.responseId}`);
-    } catch {
-      setErrors({ _form: "Submission failed. Please try again." });
-    } finally {
-      setSubmitting(false);
+    if (currentStep?.kind !== "section_intro") {
+      await flushCurrentPage();
     }
-  }, [responseId, sessionId, turnstileToken, router]);
+
+    setStepIndex(currentStepIndex - 1);
+  }, [currentStepIndex, currentStep, flushCurrentPage, setStepIndex]);
 
   if (!currentStep) return null;
 
@@ -188,8 +219,7 @@ export function SurveyFlow({
             <SectionIntro
               section={getSectionById(questionnaire, currentStep.sectionId)!}
               questionCount={
-                getSectionById(questionnaire, currentStep.sectionId)!.questions
-                  .length
+                getSectionById(questionnaire, currentStep.sectionId)!.questions.length
               }
               onContinue={goNext}
             />
@@ -204,34 +234,15 @@ export function SurveyFlow({
                       key={q.id}
                       question={q}
                       value={answers[q.id]}
-                      onChange={(v) =>
-                        handleAnswerChange(q, currentStep.sectionId, v)
-                      }
+                      onChange={(v) => handleAnswerChange(q, v)}
                       error={errors[q.id]}
                     />
                   ) : null
                 )}
               </GlassCard>
 
-              {showCaptcha && isLastStep && (
-                <div className="mt-6 flex flex-col items-center gap-4">
-                  <p className="text-sm text-slate-400">
-                    Please verify you are human to submit
-                  </p>
-                  {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
-                    <Turnstile
-                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                      onSuccess={setTurnstileToken}
-                    />
-                  ) : (
-                    <p className="text-xs text-amber-400/80">
-                      Captcha disabled in development
-                    </p>
-                  )}
-                  {errors._form && (
-                    <p className="text-sm text-rose-400">{errors._form}</p>
-                  )}
-                </div>
+              {errors._form && (
+                <p className="mt-4 text-center text-sm text-rose-400">{errors._form}</p>
               )}
             </div>
           </PageTransition>
@@ -242,31 +253,17 @@ export function SurveyFlow({
         <SurveyNavigation
           canGoBack={currentStepIndex > 0}
           onBack={goBack}
-          onNext={
-            preview && isLastStep
-              ? () => router.push("/welcome")
-              : showCaptcha && isLastStep
-                ? handleSubmit
-                : goNext
-          }
+          onNext={goNext}
           nextLabel={
             preview && isLastStep
               ? "End preview"
-              : showCaptcha && isLastStep
+              : isLastStep
                 ? submitting
                   ? "Submitting…"
                   : "Submit Survey"
-                : isLastStep
-                  ? "Review & Submit"
-                  : "Continue"
+                : "Continue"
           }
-          isNextDisabled={
-            !preview &&
-            showCaptcha &&
-            isLastStep &&
-            (submitting ||
-              (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken))
-          }
+          isNextDisabled={!preview && isLastStep && submitting}
           isLoading={submitting || isSaving}
         />
       )}

@@ -5,7 +5,6 @@ import { getAllQuestions } from "@/lib/questionnaire";
 import { loadQuestionnaire } from "@/lib/questionnaire-loader";
 import { rateLimit } from "@/lib/rate-limit";
 import { submitSchema, validateAnswerForQuestion } from "@/lib/validation";
-import { verifyTurnstile } from "@/lib/turnstile";
 import { headers } from "next/headers";
 
 export async function POST(request: Request) {
@@ -21,17 +20,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid submission" }, { status: 400 });
   }
 
-  const { responseId, sessionId, turnstileToken, honeypot } = parsed.data;
+  const { responseId, sessionId, honeypot } = parsed.data;
   if (honeypot) {
     return NextResponse.json({ error: "Rejected" }, { status: 400 });
-  }
-
-  const tokenValid = turnstileToken
-    ? await verifyTurnstile(turnstileToken, ip)
-    : process.env.NODE_ENV === "development";
-
-  if (!tokenValid) {
-    return NextResponse.json({ error: "Captcha verification failed" }, { status: 403 });
   }
 
   if (!isSupabaseConfigured()) {

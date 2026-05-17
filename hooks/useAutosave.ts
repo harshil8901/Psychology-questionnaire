@@ -1,42 +1,47 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { useSurveyStore } from "@/store/survey-store";
 import { sanitizeText } from "@/lib/validation";
 
+export type PageAnswer = {
+  questionId: string;
+  sectionId: string;
+  value: string;
+};
+
 export function useAutosave(preview = false) {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { responseId, sessionId, offlineMode, setSaving, setLastSaved } =
     useSurveyStore();
 
-  const saveAnswer = useCallback(
-    async (questionId: string, sectionId: string, value: string) => {
-      if (preview || offlineMode || !responseId || !sessionId) return;
+  const savePageAnswers = useCallback(
+    async (items: PageAnswer[]) => {
+      if (preview || offlineMode || !responseId || !sessionId || items.length === 0) {
+        return;
+      }
 
-      const clean = sanitizeText(value);
-
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true);
-        try {
-          await fetch(`/api/responses/${responseId}/answers`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId,
-              questionId,
-              sectionId,
-              value: clean,
-            }),
-          });
-          setLastSaved(new Date().toISOString());
-        } catch (e) {
-          console.error("Autosave failed", e);
-        } finally {
-          setSaving(false);
-        }
-      }, 400);
+      setSaving(true);
+      try {
+        await Promise.all(
+          items.map(({ questionId, sectionId, value }) =>
+            fetch(`/api/responses/${responseId}/answers`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sessionId,
+                questionId,
+                sectionId,
+                value: sanitizeText(value),
+              }),
+            })
+          )
+        );
+        setLastSaved(new Date().toISOString());
+      } catch (e) {
+        console.error("Autosave failed", e);
+      } finally {
+        setSaving(false);
+      }
     },
     [preview, offlineMode, responseId, sessionId, setSaving, setLastSaved]
   );
@@ -59,5 +64,5 @@ export function useAutosave(preview = false) {
     [preview, offlineMode, responseId, sessionId]
   );
 
-  return { saveAnswer, syncProgress };
+  return { savePageAnswers, syncProgress };
 }
