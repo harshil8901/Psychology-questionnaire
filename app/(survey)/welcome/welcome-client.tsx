@@ -21,6 +21,8 @@ export function WelcomeClient({
 }) {
   const router = useRouter();
   const [consentOpen, setConsentOpen] = useState(false);
+  const [accepting, setAccepting] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
   const { acceptConsent } = useSurveySession();
 
   const handleAccept = async () => {
@@ -28,9 +30,21 @@ export function WelcomeClient({
       router.push(`/survey?q=${questionnaire.id}&preview=1`);
       return;
     }
-    await acceptConsent();
-    setConsentOpen(false);
-    router.push("/survey");
+
+    setAccepting(true);
+    setConsentError(null);
+    try {
+      await acceptConsent();
+      setConsentOpen(false);
+      router.push("/survey");
+    } catch (err) {
+      console.error("Consent failed", err);
+      setConsentError(
+        "Could not start the survey. Please check your connection and try again."
+      );
+    } finally {
+      setAccepting(false);
+    }
   };
 
   return (
@@ -97,8 +111,13 @@ export function WelcomeClient({
         <ConsentModal
           open={consentOpen}
           onAccept={handleAccept}
-          onDecline={() => setConsentOpen(false)}
+          onDecline={() => {
+            setConsentOpen(false);
+            setConsentError(null);
+          }}
           estimatedMinutes={questionnaire.estimatedTime}
+          loading={accepting}
+          error={consentError}
         />
       )}
     </main>

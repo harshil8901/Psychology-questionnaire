@@ -69,10 +69,14 @@ export async function PATCH(
     if (error) throw error;
 
     if (updates.consentAcceptedAt) {
-      await supabase.from("analytics").insert({
-        response_id: id,
-        event_type: "consent_accepted",
-      });
+      try {
+        await supabase.from("analytics").insert({
+          response_id: id,
+          event_type: "consent_accepted",
+        });
+      } catch {
+        // Non-blocking — consent is already saved on responses row
+      }
     }
 
     return NextResponse.json({ ok: true });

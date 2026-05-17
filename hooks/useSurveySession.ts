@@ -14,6 +14,22 @@ type SessionResponse = {
   offline?: boolean;
 };
 
+async function saveConsentToServer(
+  responseId: string,
+  sessionId: string,
+  timestamp: string
+): Promise<boolean> {
+  const res = await fetch(`/api/responses/${responseId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId,
+      consentAcceptedAt: timestamp,
+    }),
+  });
+  return res.ok;
+}
+
 export function useSurveySession() {
   const store = useSurveyStore();
 
@@ -64,23 +80,25 @@ export function useSurveySession() {
   }, [store]);
 
   const acceptConsent = useCallback(async () => {
-    const { responseId, sessionId, offline } = await ensureSession();
     const timestamp = new Date().toISOString();
+    let { responseId, sessionId, offline } = await ensureSession();
 
     if (!offline) {
-      const res = await fetch(`/api/responses/${responseId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          consentAcceptedAt: timestamp,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(
-          (data as { error?: string }).error ?? "Could not save consent"
-        );
+      let saved = await saveConsentToServer(responseId, sessionId, timestamp);
+
+      if (!saved) {
+        store.clearResponseId();
+        const retry = await ensureSession();
+        responseId = retry.responseId;
+        sessionId = retry.sessionId;
+        offline = retry.offline;
+        if (!offline) {
+          saved = await saveConsentToServer(responseId, sessionId, timestamp);
+        }
+      }
+
+      if (!saved && !offline) {
+        console.warn("Consent could not be synced to server; continuing locally.");
       }
     }
 

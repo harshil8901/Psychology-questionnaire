@@ -15,6 +15,7 @@ interface SurveyState {
   offlineMode: boolean;
 
   setSession: (sessionId: string, responseId: string, offline?: boolean) => void;
+  clearResponseId: () => void;
   setConsent: (timestamp: string) => void;
   setStepIndex: (index: number) => void;
   setAnswer: (questionId: string, value: string) => void;
@@ -44,6 +45,7 @@ export const useSurveyStore = create<SurveyState>()(
       ...initialState,
       setSession: (sessionId, responseId, offline = false) =>
         set({ sessionId, responseId, offlineMode: offline }),
+      clearResponseId: () => set({ responseId: null }),
       setConsent: (timestamp) => set({ consentAcceptedAt: timestamp }),
       setStepIndex: (index) => set({ currentStepIndex: index }),
       setAnswer: (questionId, value) =>

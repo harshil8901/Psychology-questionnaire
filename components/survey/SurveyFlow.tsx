@@ -43,6 +43,7 @@ export function SurveyFlow({
     isSaving,
     consentAcceptedAt,
     offlineMode,
+    isHydrated,
   } = useSurveyStore();
   const { savePageAnswers, syncProgress } = useAutosave(preview);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,11 +66,11 @@ export function SurveyFlow({
   }, [currentStep, questionnaire]);
 
   useEffect(() => {
-    if (preview) return;
+    if (preview || !isHydrated) return;
     if (!consentAcceptedAt) {
       router.replace("/welcome");
     }
-  }, [consentAcceptedAt, preview, router]);
+  }, [consentAcceptedAt, preview, router, isHydrated]);
 
   useEffect(() => {
     return () => {
