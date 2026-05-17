@@ -3,7 +3,6 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Question } from "@/types/questionnaire";
-import { LikertScale } from "./LikertScale";
 import { SingleChoice } from "./SingleChoice";
 import { TextQuestion } from "./TextQuestion";
 
@@ -47,19 +46,10 @@ function QuestionRendererComponent({
         )}
       </div>
       <div>
-        {question.type === "likert" && (
-          <LikertScale
-            name={question.id}
-            options={question.scale}
-            value={value}
-            onChange={onChange}
-            compact={compact}
-          />
-        )}
-        {question.type === "single_choice" && (
+        {(question.type === "likert" || question.type === "single_choice") && (
           <SingleChoice
             name={question.id}
-            options={question.options}
+            options={question.type === "likert" ? question.scale : question.options}
             value={value}
             onChange={onChange}
             compact={compact}

@@ -21,10 +21,7 @@ export function SingleChoice({
   return (
     <motion.div
       role="radiogroup"
-      className={cn(
-        "grid gap-1.5",
-        compact && "sm:grid-cols-2"
-      )}
+      className="grid grid-cols-1 gap-2"
       initial="hidden"
       animate="visible"
       variants={{
@@ -41,8 +38,8 @@ export function SingleChoice({
             htmlFor={id}
             variants={{ hidden: { opacity: 0, x: -8 }, visible: { opacity: 1, x: 0 } }}
             className={cn(
-              "flex cursor-pointer touch-manipulation items-center gap-2.5 rounded-lg border px-3 transition-all active:scale-[0.99]",
-              compact ? "min-h-[44px] py-2.5" : "min-h-[52px] rounded-xl px-4 py-3",
+              "flex min-h-[52px] cursor-pointer touch-manipulation items-center gap-3 rounded-xl border px-4 py-3 transition-all active:scale-[0.99]",
+              compact && "min-h-[48px] py-2.5",
               selected
                 ? "border-white/25 bg-white/[0.1] text-white"
                 : "border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]"
@@ -65,12 +62,7 @@ export function SingleChoice({
             >
               {selected && <span className="h-2 w-2 rounded-full bg-[#020308]" />}
             </span>
-            <span
-              className={cn(
-                "font-medium leading-snug",
-                compact ? "text-sm" : "text-base"
-              )}
-            >
+            <span className="text-base font-medium leading-snug">
               {option}
             </span>
           </motion.label>
