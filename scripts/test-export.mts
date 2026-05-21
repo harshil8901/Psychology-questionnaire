@@ -69,6 +69,23 @@ const mockResponses: ResponseRow[] = [
     current_step_index: 0,
     demographic_snapshot: null,
   },
+  {
+    id: "r4",
+    created_at: "2026-01-04T00:00:00Z",
+    updated_at: "2026-01-04T00:00:00Z",
+    completed_at: "2026-01-04T00:00:00Z",
+    progress_percentage: 100,
+    is_completed: true,
+    session_id: "s4",
+    questionnaire_id: "flourishing-workplace",
+    questionnaire_version: "1.0",
+    consent_accepted_at: "2026-01-04T00:00:00Z",
+    started_at: null,
+    last_section_id: null,
+    last_question_id: null,
+    current_step_index: 0,
+    demographic_snapshot: null,
+  },
 ];
 
 const answersByResponse = new Map<string, AnswerRow[]>([
@@ -93,6 +110,7 @@ const rows = [
   { response_id: "r1", gender: "Male", name: "Alice" },
   { response_id: "r2", gender: "Female", name: "Bob" },
   { response_id: "r3", gender: "Non-binary", name: "" },
+  { response_id: "r4", gender: "", name: "No gender" },
 ];
 
 function sheetRowCount(wb: XLSX.WorkBook, sheetName: string): number {
@@ -113,11 +131,15 @@ function main() {
     getResponseGender(mockResponses[2]!, answersByResponse) === "Non-binary",
     "gender fallback from answers when snapshot missing"
   );
+  assert(
+    getResponseGender(mockResponses[3]!, answersByResponse) === null,
+    "missing gender returns null"
+  );
 
   const combined = XLSX.read(toXLSXBuffer(headers, rows), { type: "array" });
   assert(combined.SheetNames.length === 1, "combined workbook has one sheet");
   assert(combined.SheetNames[0] === "Responses", "combined sheet named Responses");
-  assert(sheetRowCount(combined, "Responses") === 3, "combined sheet has 3 data rows");
+  assert(sheetRowCount(combined, "Responses") === 4, "combined sheet has all rows");
 
   const segregated = XLSX.read(
     toGenderSegregatedXLSXBuffer(headers, rows, mockResponses, answersByResponse),
@@ -133,8 +155,9 @@ function main() {
   assert(sheetRowCount(segregated, "Male") === 1, "Male sheet has 1 row");
   assert(sheetRowCount(segregated, "Female") === 1, "Female sheet has 1 row");
   assert(sheetRowCount(segregated, "Non-binary") === 1, "Non-binary sheet has 1 row");
+  assert(!segregated.SheetNames.includes("Unknown"), "no Unknown sheet");
 
-  console.log("✓ getResponseGender (snapshot + answer fallback)");
+  console.log("✓ getResponseGender (snapshot + answer fallback, null when missing)");
   console.log("✓ combined XLSX (single Responses sheet, 3 rows)");
   console.log("✓ gender-segregated XLSX (Male, Female, Non-binary sheets)");
   console.log("\n✅ Export tests passed\n");

@@ -71,7 +71,7 @@ const GENDER_SHEET_ORDER = ["Male", "Female", "Non-binary", "Prefer not to say"]
 export function getResponseGender(
   response: ResponseRow,
   answersByResponse: Map<string, AnswerRow[]>
-): string {
+): string | null {
   const fromSnapshot = response.demographic_snapshot?.gender?.trim();
   if (fromSnapshot) return fromSnapshot;
 
@@ -80,12 +80,12 @@ export function getResponseGender(
   )?.answer?.trim();
   if (genderAnswer) return genderAnswer;
 
-  return "Unknown";
+  return null;
 }
 
 function sanitizeSheetName(name: string): string {
   const cleaned = name.replace(/[\\/?*[\]:]/g, "").trim().slice(0, 31);
-  return cleaned || "Unknown";
+  return cleaned || "Sheet";
 }
 
 function uniqueSheetName(base: string, used: Set<string>): string {
@@ -142,7 +142,9 @@ export function toGenderSegregatedXLSXBuffer(
   const groups = new Map<string, Record<string, unknown>[]>();
   for (const row of rows) {
     const responseId = String(row.response_id ?? "");
-    const gender = genderByResponseId.get(responseId) ?? "Unknown";
+    const gender = genderByResponseId.get(responseId)?.trim();
+    if (!gender) continue;
+
     const list = groups.get(gender) ?? [];
     list.push(row);
     groups.set(gender, list);
