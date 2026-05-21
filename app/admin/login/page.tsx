@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push("/admin");
+    router.push("/admin/responses");
     router.refresh();
   };
 

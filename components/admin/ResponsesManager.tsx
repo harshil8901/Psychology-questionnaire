@@ -145,14 +145,14 @@ export function ResponsesManager() {
           <p className="text-xs text-slate-500">Completed submissions</p>
           <p className="font-heading mt-1 text-3xl font-semibold text-white">{completedCount}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <a href={exportUrl("csv")} className={adminBtn("ghost")}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          <a href={exportUrl("csv")} className={cn(adminBtn("ghost"), "w-full sm:w-auto")}>
             Export CSV
           </a>
-          <div className="relative" ref={exportMenuRef}>
+          <div className="relative w-full sm:w-auto" ref={exportMenuRef}>
             <button
               type="button"
-              className={adminBtn("primary")}
+              className={cn(adminBtn("primary"), "w-full sm:w-auto")}
               aria-expanded={exportMenuOpen}
               aria-haspopup="menu"
               onClick={() => setExportMenuOpen((open) => !open)}
@@ -163,7 +163,7 @@ export function ResponsesManager() {
             {exportMenuOpen && (
               <div
                 role="menu"
-                className="absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-lg border border-white/[0.08] bg-slate-900 py-1 shadow-xl"
+                className="absolute right-0 left-0 z-20 mt-2 w-full overflow-hidden rounded-lg border border-white/[0.08] bg-slate-900 py-1 shadow-xl sm:left-auto sm:w-64"
               >
                 <a
                   role="menuitem"
@@ -214,7 +214,7 @@ export function ResponsesManager() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className={cn("w-full sm:w-56", adminInput)}
+              className={cn("h-11 w-full sm:h-9 sm:w-56", adminInput)}
             />
             <select
               value={sort}
@@ -227,7 +227,7 @@ export function ResponsesManager() {
           </div>
         </div>
 
-        <div className="p-2 sm:p-3">
+        <div className="p-2 sm:p-3 pb-1">
           {loading ? (
             <p className="p-5 text-sm text-slate-500">Loading…</p>
           ) : !data || data.responses.length === 0 ? (

@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
     }
     if (hasAdmin && isLogin) {
       const url = request.nextUrl.clone();
-      url.pathname = "/admin";
+      url.pathname = "/admin/responses";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();

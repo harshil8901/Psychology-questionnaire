@@ -20,7 +20,7 @@ export const adminItemTitle = "font-heading text-lg font-semibold text-slate-100
 export const adminCard =
   "rounded-xl border border-white/[0.06] bg-[#0a0d12]/90 shadow-sm shadow-black/20";
 
-export const adminCardHeader = "border-b border-white/[0.05] px-5 py-4";
+export const adminCardHeader = "border-b border-white/[0.05] px-4 py-3.5 sm:px-5 sm:py-4";
 
 export const adminInput =
   "border-white/[0.08] bg-white/[0.03] text-white placeholder:text-slate-600 focus-visible:border-white/20 focus-visible:ring-white/10";
@@ -30,7 +30,7 @@ export const adminSelect =
 
 export function adminBtn(variant: "primary" | "secondary" | "ghost" | "danger" = "secondary") {
   return cn(
-    "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors touch-manipulation disabled:pointer-events-none disabled:opacity-40 sm:min-h-9",
     variant === "primary" &&
       "border border-white/10 bg-white text-[#020308] hover:bg-slate-100",
     variant === "secondary" &&

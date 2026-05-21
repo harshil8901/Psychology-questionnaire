@@ -189,7 +189,7 @@ export function QuestionnaireManager() {
             Activate a version for participants or preview before publishing
           </p>
         </div>
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           {listMessage && (
             <p
               className={cn(
@@ -227,7 +227,7 @@ export function QuestionnaireManager() {
                       {q.questionCount} questions · ~{q.estimatedTime} min
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                     {!q.isActive && (
                       <button
                         type="button"
@@ -284,7 +284,7 @@ export function QuestionnaireManager() {
             </p>
           </div>
         </div>
-        <div className="space-y-4 p-5">
+        <div className="space-y-4 p-4 sm:p-5">
           <Textarea
             value={json}
             onChange={(e) => setJson(e.target.value)}
