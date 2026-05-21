@@ -101,21 +101,43 @@ export async function getActiveQuestionnaireId(): Promise<string> {
   return DEFAULT_QUESTIONNAIRE_ID;
 }
 
+async function loadQuestionnaireFromDatabase(
+  targetId: string
+): Promise<Questionnaire | null> {
+  const supabase = createAdminClient();
+
+  const { data: byRowId } = await supabase
+    .from("questionnaire_configs")
+    .select("config, source")
+    .eq("id", targetId)
+    .maybeSingle();
+
+  if (byRowId?.config && byRowId.source !== "hidden") {
+    return questionnaireSchema.parse(byRowId.config) as Questionnaire;
+  }
+
+  // Clients use config.id (e.g. flourishing-workplace), which may differ from the row id.
+  const { data: byConfigId } = await supabase
+    .from("questionnaire_configs")
+    .select("config, source")
+    .filter("config->>id", "eq", targetId)
+    .neq("source", "hidden")
+    .limit(1)
+    .maybeSingle();
+
+  if (byConfigId?.config) {
+    return questionnaireSchema.parse(byConfigId.config) as Questionnaire;
+  }
+
+  return null;
+}
+
 export async function loadQuestionnaire(id?: string): Promise<Questionnaire> {
   const targetId = id ?? (await getActiveQuestionnaireId());
 
   try {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from("questionnaire_configs")
-      .select("config, source")
-      .eq("id", targetId)
-      .maybeSingle();
-
-    if (data?.config && data.source !== "hidden") {
-      const parsed = questionnaireSchema.parse(data.config);
-      return parsed as Questionnaire;
-    }
+    const fromDb = await loadQuestionnaireFromDatabase(targetId);
+    if (fromDb) return fromDb;
   } catch {
     // fall through to file
   }
@@ -123,6 +145,17 @@ export async function loadQuestionnaire(id?: string): Promise<Questionnaire> {
   const hidden = await isQuestionnaireHidden(targetId);
   const file = hidden ? null : getFileQuestionnaire(targetId);
   if (file) return file;
+
+  // Legacy ids (e.g. hidden file default) may still be stored client-side — use active DB config.
+  try {
+    const activeId = await getActiveQuestionnaireId();
+    if (activeId !== targetId) {
+      const activeFromDb = await loadQuestionnaireFromDatabase(activeId);
+      if (activeFromDb) return activeFromDb;
+    }
+  } catch {
+    // fall through
+  }
 
   const fallbackHidden = await isQuestionnaireHidden(DEFAULT_QUESTIONNAIRE_ID);
   const fallback = fallbackHidden

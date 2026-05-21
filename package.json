@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:export": "npx tsx scripts/test-export.mts",
+    "test:e2e": "npx tsx scripts/e2e-full.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

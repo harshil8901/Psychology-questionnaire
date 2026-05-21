@@ -390,43 +390,12 @@ const sections: SurveySection[] = [
     themeGradient: "from-yellow-500 to-amber-500",
     questions: likertItems("optimism", "op", optimismStems, LIKERT_AGREE),
   },
-  {
-    id: "open_feedback",
-    title: "Additional Reflections",
-    description:
-      "Optional space to share anything else relevant to your workplace experience.",
-    icon: "message",
-    estimatedTime: 1,
-    themeGradient: "from-slate-500 to-slate-600",
-    questions: [
-      {
-        id: "workplace_strengths",
-        type: "textarea",
-        question:
-          "What helps you flourish most at your workplace? (Optional)",
-        required: false,
-        placeholder: "Share briefly...",
-        analyticsKey: "open_feedback",
-        order: 1,
-      },
-      {
-        id: "improvement_areas",
-        type: "textarea",
-        question:
-          "What could your organization do better to support employee wellbeing? (Optional)",
-        required: false,
-        placeholder: "Share briefly...",
-        analyticsKey: "open_feedback",
-        order: 2,
-      },
-    ],
-  },
 ];
 
 export const questionnaire: Questionnaire = {
   id: "flourishing-workplace",
   title: "Predictors of Flourishing at Workplace",
-  estimatedTime: 17,
+  estimatedTime: 16,
   version: "1.0",
   sections,
 };

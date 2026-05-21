@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
-import { buildExportRows, toCSV, toXLSXBuffer } from "@/lib/export";
+import {
+  buildExportRows,
+  toCSV,
+  toGenderSegregatedXLSXBuffer,
+  toXLSXBuffer,
+} from "@/lib/export";
 import type { AnswerRow, ResponseRow } from "@/types/database";
 
 export async function GET(request: Request) {
@@ -11,6 +16,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const format = searchParams.get("format") ?? "csv";
+  const split = searchParams.get("split") ?? "combined";
 
   const supabase = createAdminClient();
 
@@ -41,12 +47,19 @@ export async function GET(request: Request) {
   const { headers, rows: exportRows } = await buildExportRows(rows, answersByResponse);
 
   if (format === "xlsx") {
-    const buffer = toXLSXBuffer(headers, exportRows);
+    const genderSegregated = split === "gender";
+    const buffer = genderSegregated
+      ? toGenderSegregatedXLSXBuffer(headers, exportRows, rows, answersByResponse)
+      : toXLSXBuffer(headers, exportRows);
+    const filename = genderSegregated
+      ? "survey-responses-by-gender.xlsx"
+      : "survey-responses.xlsx";
+
     return new NextResponse(buffer, {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="survey-responses.xlsx"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   }

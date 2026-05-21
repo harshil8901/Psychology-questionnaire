@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,8 @@ export function ResponsesManager() {
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +85,22 @@ export function ResponsesManager() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+
+    const closeMenu = (event: MouseEvent) => {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(event.target as Node)
+      ) {
+        setExportMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
+  }, [exportMenuOpen]);
 
   const handleDelete = async (row: ResponseRow) => {
     const name = respondentName(row);
@@ -112,7 +130,11 @@ export function ResponsesManager() {
     }
   };
 
-  const exportUrl = (format: string) => `/api/admin/export?format=${format}`;
+  const exportUrl = (format: string, split?: "combined" | "gender") => {
+    const params = new URLSearchParams({ format });
+    if (split) params.set("split", split);
+    return `/api/admin/export?${params}`;
+  };
 
   const completedCount = data?.summary.completed ?? data?.pagination.total ?? 0;
 
@@ -127,10 +149,47 @@ export function ResponsesManager() {
           <a href={exportUrl("csv")} className={adminBtn("ghost")}>
             Export CSV
           </a>
-          <a href={exportUrl("xlsx")} className={adminBtn("primary")}>
-            <Download className="h-3.5 w-3.5" />
-            Export XLSX
-          </a>
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              type="button"
+              className={adminBtn("primary")}
+              aria-expanded={exportMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setExportMenuOpen((open) => !open)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export XLSX
+            </button>
+            {exportMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-lg border border-white/[0.08] bg-slate-900 py-1 shadow-xl"
+              >
+                <a
+                  role="menuitem"
+                  href={exportUrl("xlsx", "combined")}
+                  className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/[0.06]"
+                  onClick={() => setExportMenuOpen(false)}
+                >
+                  <span className="font-medium text-white">Combined</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    All responses in one sheet
+                  </span>
+                </a>
+                <a
+                  role="menuitem"
+                  href={exportUrl("xlsx", "gender")}
+                  className="block border-t border-white/[0.06] px-4 py-2.5 text-sm text-slate-200 hover:bg-white/[0.06]"
+                  onClick={() => setExportMenuOpen(false)}
+                >
+                  <span className="font-medium text-white">Gender segregated</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Separate sheet per gender
+                  </span>
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -66,9 +66,102 @@ export function toCSV(headers: string[], rows: Record<string, unknown>[]): strin
   return lines.join("\n");
 }
 
+const GENDER_SHEET_ORDER = ["Male", "Female", "Non-binary", "Prefer not to say"];
+
+export function getResponseGender(
+  response: ResponseRow,
+  answersByResponse: Map<string, AnswerRow[]>
+): string {
+  const fromSnapshot = response.demographic_snapshot?.gender?.trim();
+  if (fromSnapshot) return fromSnapshot;
+
+  const genderAnswer = (answersByResponse.get(response.id) ?? []).find(
+    (a) => a.question_id === "gender"
+  )?.answer?.trim();
+  if (genderAnswer) return genderAnswer;
+
+  return "Unknown";
+}
+
+function sanitizeSheetName(name: string): string {
+  const cleaned = name.replace(/[\\/?*[\]:]/g, "").trim().slice(0, 31);
+  return cleaned || "Unknown";
+}
+
+function uniqueSheetName(base: string, used: Set<string>): string {
+  const name = sanitizeSheetName(base);
+  if (!used.has(name)) {
+    used.add(name);
+    return name;
+  }
+  let n = 2;
+  while (n < 100) {
+    const suffix = ` (${n})`;
+    const candidate = sanitizeSheetName(
+      base.slice(0, Math.max(1, 31 - suffix.length)) + suffix
+    );
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+    n++;
+  }
+  const fallback = sanitizeSheetName(`${base}-${Date.now()}`);
+  used.add(fallback);
+  return fallback;
+}
+
+function sortGenders(genders: string[]): string[] {
+  return [...genders].sort((a, b) => {
+    const ai = GENDER_SHEET_ORDER.indexOf(a);
+    const bi = GENDER_SHEET_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
 export function toXLSXBuffer(headers: string[], rows: Record<string, unknown>[]): ArrayBuffer {
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Responses");
+  return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+}
+
+export function toGenderSegregatedXLSXBuffer(
+  headers: string[],
+  rows: Record<string, unknown>[],
+  responses: ResponseRow[],
+  answersByResponse: Map<string, AnswerRow[]>
+): ArrayBuffer {
+  const genderByResponseId = new Map(
+    responses.map((r) => [r.id, getResponseGender(r, answersByResponse)])
+  );
+
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const row of rows) {
+    const responseId = String(row.response_id ?? "");
+    const gender = genderByResponseId.get(responseId) ?? "Unknown";
+    const list = groups.get(gender) ?? [];
+    list.push(row);
+    groups.set(gender, list);
+  }
+
+  const wb = XLSX.utils.book_new();
+  const usedNames = new Set<string>();
+
+  for (const gender of sortGenders([...groups.keys()])) {
+    const groupRows = groups.get(gender) ?? [];
+    const sheetName = uniqueSheetName(gender, usedNames);
+    const ws = XLSX.utils.json_to_sheet(groupRows, { header: headers });
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  }
+
+  if (groups.size === 0) {
+    const ws = XLSX.utils.json_to_sheet([], { header: headers });
+    XLSX.utils.book_append_sheet(wb, ws, "Responses");
+  }
+
   return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
