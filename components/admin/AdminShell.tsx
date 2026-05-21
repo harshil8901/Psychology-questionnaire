@@ -11,8 +11,8 @@ import {
 } from "@/components/admin/admin-ui";
 
 const NAV = [
-  { href: "/admin/responses", label: "Responses", icon: Table2, shortLabel: "Responses" },
-  { href: "/admin", label: "Questionnaires", icon: FileText, shortLabel: "Forms" },
+  { href: "/admin/responses", label: "Responses", icon: Table2 },
+  { href: "/admin", label: "Questionnaires", icon: FileText },
 ] as const;
 
 function isNavActive(pathname: string, href: string): boolean {
@@ -115,22 +115,22 @@ export function AdminShell({
           aria-label="Admin navigation"
         >
           <div className="mx-auto flex max-w-lg items-stretch justify-around gap-1 px-2 pt-1">
-            {NAV.map(({ href, label, shortLabel, icon: Icon }) => {
+            {NAV.map(({ href, label, icon: Icon }) => {
               const active = isNavActive(pathname, href);
               return (
                 <Link
                   key={href}
                   href={href}
                   className={cn(
-                    "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-center transition-colors touch-manipulation",
+                    "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-2 text-center transition-colors touch-manipulation",
                     active
                       ? "bg-white/[0.08] text-white"
                       : "text-slate-500 active:bg-white/[0.04]"
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                  <span className="w-full truncate text-[11px] font-medium leading-tight">
-                    {shortLabel}
+                  <span className="w-full px-0.5 text-[10px] font-medium leading-tight tracking-tight">
+                    {label}
                   </span>
                 </Link>
               );
