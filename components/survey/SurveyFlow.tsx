@@ -55,12 +55,7 @@ export function SurveyFlow({
   const busyRef = useRef(false);
 
   const currentStep: SurveyStep | undefined = steps[currentStepIndex];
-  const progress = calculateProgress(
-    questionnaire,
-    answers,
-    currentStepIndex,
-    steps
-  );
+  const progress = calculateProgress(questionnaire, answers);
 
   const sectionLabel = useMemo(() => {
     if (!currentStep) return undefined;
@@ -173,8 +168,7 @@ export function SurveyFlow({
       setStepIndex(nextIndex);
       await syncProgress({
         currentStepIndex: nextIndex,
-        progressPercentage: calculateProgress(questionnaire, answers, nextIndex, steps)
-          .percentage,
+        progressPercentage: calculateProgress(questionnaire, answers).percentage,
         lastSectionId: currentStep?.sectionId,
       });
     } finally {

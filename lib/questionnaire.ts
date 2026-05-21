@@ -50,15 +50,19 @@ export function getSectionById(questionnaire: Questionnaire, sectionId: string) 
 
 export function calculateProgress(
   questionnaire: Questionnaire,
-  answers: Record<string, string>,
-  currentStepIndex: number,
-  steps: SurveyStep[]
+  answers: Record<string, string>
 ): { percentage: number; answeredCount: number; total: number; minutesLeft: number } {
-  const total = countTotalQuestions(questionnaire);
-  const answeredCount = Object.keys(answers).filter((k) => answers[k]?.trim()).length;
-  const stepProgress = steps.length > 0 ? (currentStepIndex / steps.length) * 100 : 0;
-  const answerProgress = total > 0 ? (answeredCount / total) * 100 : 0;
-  const percentage = Math.min(100, Math.round(Math.max(stepProgress, answerProgress) * 10) / 10);
+  const visibleQuestions = getAllQuestions(questionnaire).filter((q) =>
+    isQuestionVisible(q, answers)
+  );
+  const total = visibleQuestions.length;
+  const answeredCount = visibleQuestions.filter((q) =>
+    answers[q.id]?.trim()
+  ).length;
+  const percentage =
+    total > 0
+      ? Math.min(100, Math.round((answeredCount / total) * 1000) / 10)
+      : 0;
 
   const remaining = Math.max(0, total - answeredCount);
   const minutesLeft = Math.max(
