@@ -63,7 +63,8 @@ export function toCSV(headers: string[], rows: Record<string, unknown>[]): strin
         .join(",")
     ),
   ];
-  return lines.join("\n");
+  // Prepend UTF-8 BOM so Excel on Windows recognizes UTF-8 correctly
+  return "\uFEFF" + lines.join("\n");
 }
 
 const GENDER_SHEET_ORDER = ["Male", "Female", "Non-binary", "Prefer not to say"];
@@ -84,7 +85,7 @@ export function getResponseGender(
 }
 
 function sanitizeSheetName(name: string): string {
-  const cleaned = name.replace(/[\\/?*[\]:]/g, "").trim().slice(0, 31);
+  const cleaned = name.replace(/[\\\/?*\[\]:]/g, "").trim().slice(0, 31);
   return cleaned || "Sheet";
 }
 
